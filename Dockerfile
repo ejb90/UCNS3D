@@ -1,5 +1,5 @@
 # Start from the official Focal Fossa (20.04 LTS) image
-ARG BASE_IMAGE=ubuntu:20.04
+ARG BASE_IMAGE=ubuntu:22.04
 FROM ${BASE_IMAGE}
 
 RUN apt-get update && \
@@ -13,7 +13,7 @@ RUN apt-get update && \
     binutils-dev \
     gcc\
     g++\
-    gfortran mpich \
+    # gfortran mpich \
     libblas-dev \
     liblapack-dev \
     autoconf \
@@ -40,7 +40,9 @@ RUN apt-get update && \
     apt-get install -y \
     git \
     cmake \
-    mpich \
+   #  mpich \
+    openmpi-bin \
+    libopenmpi-dev \
     libopenblas-dev ;\
     rm -rf /var/lib/apt/lists/*
 
@@ -52,7 +54,7 @@ RUN mkdir -p /root/local ;\
    cd /root/ ;\
    git clone https://github.com/KarypisLab/GKlib.git
 
-RUN make -C /root/GKlib config cc=gcc prefix=/root/local 
+RUN make -C /root/GKlib config cc=gcc prefix=/root/local
 RUN	cd /root/GKlib && make install
 
 RUN cd /root/ ;\
@@ -73,7 +75,7 @@ ADD bin/lib/tecplot/libtecio.a /root/CODE
 RUN cd /root/CODE && make -f Makefile_docker all
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 
-# Make & set a rundir & copy executable 
+# Make & set a rundir & copy executable
 RUN mkdir -p /ucns3d_run
 RUN cp /root/CODE/ucns3d_p /ucns3d_run
 
@@ -81,6 +83,10 @@ RUN cp /root/CODE/ucns3d_p /ucns3d_run
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Remove src and metis dependencies
 RUN rm -rf /root/CODE && rm -rf /root/GKlib && rm -rf /root/METIS && rm -rf /ParMETIS
+
+# Root MPI inside container
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 WORKDIR /ucns3d_run
 # Copy taylor green problem and run script
