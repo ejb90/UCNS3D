@@ -21,7 +21,8 @@ cd ParMETIS
 make install
 cd ..
 
-git clone git@github.com:ucns3d-team/UCNS3D.git
+# git clone git@github.com:ucns3d-team/UCNS3D.git
+git clone git@github.com:ejb90/UCNS3D.git -b s421784
 cd UCNS3D/src
 ln -sf ../../GKlib/build/Linux-x86_64/libGKlib.a
 ln -sf ../../METIS/build/libmetis/libmetis.a
