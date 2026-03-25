@@ -1133,11 +1133,11 @@ REAL::EDGEL,DIST
 
 
 				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
-				  
+
  				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
 				  DIST=DISTANCE3(N,VEXT)
-				  
+
   				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
  	END DO
 	
@@ -1170,15 +1170,15 @@ REAL::EDGEL,DIST
 	FACEX=L
 	N_NODE=2
 				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
-				  
+
  				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; 
+				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC;
 				  DIST=DISTANCE2(N,VEXT)
-				  
-				  
+
+
 				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
-				  
-	
+
+
 	END DO
 	
 

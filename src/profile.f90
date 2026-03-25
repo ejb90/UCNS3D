@@ -132,7 +132,7 @@ INTEGER,INTENT(IN)::N
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
 real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,xin,yin,zin
 integer::u_cond1,u_cond2,u_cond3,u_cond4
 
 
@@ -146,7 +146,7 @@ VECCOS(:)=ZERO
 R1=RRES
 P1=PRES
 S1=SQRT((GAMMA*P1)/(R1))
-U1=UVEL
+u1=uvel
 V1=VVEL
 W1=WVEL
 
@@ -216,6 +216,108 @@ END IF
 
 
 
+IF (INITCOND.EQ.400)THEN
+
+R1=RRES
+P1=PRES
+S1=SQRT((GAMMA*P1)/(R1))
+u1=uvel
+
+
+
+IF (((POX(1).GT.0.472145).AND.(POX(1).LT.0.55193)).AND.((POY(1).GT.-0.1).AND.(POY(1).LT.-0.086)))THEN
+
+U1=80
+
+end if
+
+if ((pox(1).ge.0.472145).and.((poy(1).ge.-0.086).and.(poy(1).le.-0.0080)))then
+u1=200
+P1=PRESS_OUTLET1
+end if
+
+
+
+
+V1=VVEL
+W1=WVEL
+
+!KINETIC ENERGY FIRST!
+SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
+!INTERNAL ENERGY
+
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+
+!TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+if (mrf.eq.1)then
+VECCOS(1)=R1
+VECCOS(2)=R1*U1+1.0e-15
+VECCOS(3)=R1*V1+1.0e-15
+VECCOS(4)=R1*W1+1.0e-15
+VECCOS(5)=E1
+else
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=R1*W1
+VECCOS(5)=E1
+
+end if
+IF (TURBULENCE.EQ.1)THEN
+
+  IF (TURBULENCEMODEL.EQ.1)THEN
+
+  VECCOS(6)=VISC*TURBINIT
+  END IF
+  IF (TURBULENCEMODEL.EQ.2)THEN
+
+   if (zero_turb_init .eq. 0) then
+    IF (RFRAME.EQ.0) THEN
+        VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+   ELSE
+        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+   END IF
+  end if
+
+    if (zero_turb_init .eq. 1) then
+      IF (RFRAME.EQ.0) THEN
+          VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+          VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+    ELSE
+          VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+          VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+    END IF
+    end if
+
+  END IF
+
+
+END IF
+IF (PASSIVESCALAR.GT.0)THEN
+
+  VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
+
+END IF
+
+
+
+
+END IF
+
+
+
+
+
+
+
+
+
 IF (INITCOND.EQ.10000)THEN	!shock density interaction
 
 
@@ -251,22 +353,26 @@ end if
 
 
 IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
- if(boundtype.eq.1)then
+xin=pox(1)-pi
+yin=poy(1)-pi
+zin=poz(1)-pi
+       
+        if(boundtype.eq.1)then
 R1=1.0D0
 W1=0.0D0
-P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 
 else
 
 W1=0.0D0
-P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
 r1=(p1*(gamma*1.25*1.25))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 end if
@@ -829,7 +935,7 @@ ELSE
 
 U1=0.0D0
 V1=-3.0
-P1=PRESS_OUTLET
+P1=PRESS_OUTLET1
 END IF
 
 
@@ -939,7 +1045,7 @@ IF (TURBULENCE.EQ.1)THEN
 
   IF (TURBULENCEMODEL.EQ.1)THEN
 
-  VECCOS(5)=VISC*TURBINIT/R1
+  VECCOS(5)=VISC*TURBINIT*r1
   END IF
   IF (TURBULENCEMODEL.EQ.2)THEN
  
