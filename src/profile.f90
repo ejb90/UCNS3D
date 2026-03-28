@@ -1945,12 +1945,12 @@ theta405 = atan2(poy(1)-0.05d0, pox(1)+0.05d0)
 
 if (pox(1).lt.-0.1d0)then
 mp_r(1)=0.166315789
-mp_r(2)=1.658
+mp_r(2)=density_lhs
 mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=114.49d0
 v1= 0.0d0
-p1=159060.0d0
+p1=shock_pressure
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
@@ -1968,8 +1968,8 @@ else
 if (drad .le. (0.025d0 + A405*cos(dble(nof_perturbations405)*theta405 + 0.0d0))) then
 
 
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
+mp_r(1)=density_bubble
+mp_r(2)=density_rhs
 mp_a(1)=0.95d0
 mp_a(2)=0.05d0
 u1=0.0d0
@@ -1987,8 +1987,8 @@ else
 
 
 
-mp_r(1)=0.166315789
-mp_r(2)=1.204
+mp_r(1)=density_bubble
+mp_r(2)=density_rhs
 mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=0.0d0
