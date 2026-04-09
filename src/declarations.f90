@@ -169,6 +169,7 @@ integer::cavitation
 real::indicator_par1,indicator_par2,indicator_par3, bound_lim  !troubled indicator parameters
 real::rhc1,rhc2,rhc3,rhc4
 real::a405   !perturbations amplitude
+real::density_lhs, density_rhs, density_bubble, shock_pressure
 real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,pr_t5,pr_t6,pr_t7,pr_t8,prace_tx1,prace_tx2,prace_tx3
 !------------------start bleed parameters-------------------!
 integer::bleed_number,bleed,bleed_type

@@ -145,6 +145,10 @@ subroutine read_ucns3d
 	read(14,*)
 	read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
 	read(14,*)nof_perturbations405	!number of perturbations	start with 8
+	read(14,*)density_lhs
+	read(14,*)density_rhs
+	read(14,*)density_bubble
+	read(14,*)shock_pressure
     close(14)
 	end if
 
