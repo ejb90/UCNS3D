@@ -3256,6 +3256,7 @@ real,dimension(1:2),intent(in)::pox,poy
 real::p,u,v,w,e,r,s,gm,skin,ien,pi
 real::xf,yf,zf,gammar
 real,dimension(nof_species)::mp_ar,mp_ie
+integer::rg_i
 
 
 if (multispecies.eq.1) then
@@ -3265,16 +3266,18 @@ if (multispecies.eq.1) then
 p=pres
 u=uvel
 v=vvel
-mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)  
-mp_ar(2)=mp_a_in(2)/(gamma_in(2)-1.0d0)
-gammar=(1.0d0/(mp_ar(1)+mp_ar(2)))+1.0d0    !mixture gamma isobaric assumption
+do rg_i=1,nof_species
+mp_ar(rg_i)=mp_a_in(rg_i)/(gamma_in(rg_i)-1.0d0)
+end do
+gammar=(1.0d0/(sum(mp_ar(1:nof_species))))+1.0d0    !mixture gamma isobaric assumption
 
 gm=gammar
 
-r=(mp_r_in(1)*mp_a_in(1))+(mp_r_in(2)*mp_a_in(2))
-mp_ie(1)=((p+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
-ien=(mp_ie(1)*mp_a_in(1))+(mp_ie(2)*mp_a_in(2))
+r=sum(mp_r_in(1:nof_species)*mp_a_in(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ien=sum(mp_ie(1:nof_species)*mp_a_in(1:nof_species))
 ! !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
 ! !total energy
@@ -3285,9 +3288,12 @@ outflow2d(1)=r
 outflow2d(2)=r*u
 outflow2d(3)=r*v
 outflow2d(4)=e
-outflow2d(5)=mp_r_in(1)*mp_a_in(1)
-outflow2d(6)=mp_r_in(2)*mp_a_in(2)
-outflow2d(7)=mp_a_in(1)
+do rg_i=1,nof_species
+outflow2d(4+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+end do
+do rg_i=1,nof_species-1
+outflow2d(4+nof_species+rg_i)=mp_a_in(rg_i)
+end do
 
 else
 
@@ -3342,6 +3348,7 @@ real,dimension(1:dimensiona),intent(in)::pox,poy,poz
 real::p,u,v,w,e,r,s,gm,skin,ien,pi
 real::xf,yf,zf,gammar
 real,dimension(nof_species)::mp_ar,mp_ie
+integer::rg_i
 
 if (multispecies.eq.1) then
 
@@ -3351,16 +3358,18 @@ p=pres
 u=uvel
 v=vvel
 w=wvel
-mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)  
-mp_ar(2)=mp_a_in(2)/(gamma_in(2)-1.0d0)
-gammar=(1.0d0/(mp_ar(1)+mp_ar(2)))+1.0d0    !mixture gamma isobaric assumption
+do rg_i=1,nof_species
+mp_ar(rg_i)=mp_a_in(rg_i)/(gamma_in(rg_i)-1.0d0)
+end do
+gammar=(1.0d0/(sum(mp_ar(1:nof_species))))+1.0d0    !mixture gamma isobaric assumption
 
 gm=gammar
 
-r=(mp_r_in(1)*mp_a_in(1))+(mp_r_in(2)*mp_a_in(2))
-mp_ie(1)=((p+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
-ien=(mp_ie(1)*mp_a_in(1))+(mp_ie(2)*mp_a_in(2))
+r=sum(mp_r_in(1:nof_species)*mp_a_in(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ien=sum(mp_ie(1:nof_species)*mp_a_in(1:nof_species))
 ! !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
 ! !total energy
@@ -3372,9 +3381,12 @@ outflow(2)=r*u
 outflow(3)=r*v
 outflow(4)=r*w
 outflow(5)=e
-outflow(6)=mp_r_in(1)*mp_a_in(1)
-outflow(7)=mp_r_in(2)*mp_a_in(2)
-outflow(8)=mp_a_in(1)
+do rg_i=1,nof_species
+outflow(5+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+end do
+do rg_i=1,nof_species-1
+outflow(5+nof_species+rg_i)=mp_a_in(rg_i)
+end do
 
 else
 

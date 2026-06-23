@@ -1944,8 +1944,11 @@ theta405 = atan2(poy(1)-0.05d0, pox(1)+0.05d0)
 
 
 if (pox(1).lt.-0.1d0)then
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
 mp_r(1)=0.166315789
 mp_r(2)=density_lhs
+if (nof_species.ge.3) mp_r(3)=0.5d0*(density_lhs+density_rhs)
 mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=114.49d0
@@ -1953,10 +1956,11 @@ v1= 0.0d0
 p1=shock_pressure
 
 
-r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
-ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
+r1=sum(mp_r(1:nof_species)*mp_a(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p1+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ie1=sum(mp_ie(1:nof_species)*mp_a(1:nof_species))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
 !vector of conserved variables now
@@ -1968,27 +1972,56 @@ else
 if (drad .le. (0.025d0 + A405*cos(dble(nof_perturbations405)*theta405 + 0.0d0))) then
 
 
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
 mp_r(1)=density_bubble
 mp_r(2)=density_rhs
+if (nof_species.ge.3) mp_r(3)=0.5d0*(density_lhs+density_rhs)
 mp_a(1)=0.95d0
 mp_a(2)=0.05d0
 u1=0.0d0
 v1=0.0d0
 p1=101325
 
-r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
-ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
+r1=sum(mp_r(1:nof_species)*mp_a(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p1+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ie1=sum(mp_ie(1:nof_species)*mp_a(1:nof_species))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
 !vector of conserved variables now
 else
 
 
-
+if ((nof_species.ge.3).and.(sqrt(((pox(1)-0.05d0)**2)+((poy(1)-0.05d0)**2)).le.0.025d0))then
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
 mp_r(1)=density_bubble
 mp_r(2)=density_rhs
+mp_r(3)=0.5d0*(density_lhs+density_rhs)
+mp_a(2)=0.05d0
+mp_a(3)=0.95d0
+u1=0.0d0
+v1=0.0d0
+p1=101325
+
+r1=sum(mp_r(1:nof_species)*mp_a(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p1+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ie1=sum(mp_ie(1:nof_species)*mp_a(1:nof_species))
+skin1=(oo2)*((u1**2)+(v1**2))
+e1=(r1*skin1)+ie1
+
+else
+
+
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
+mp_r(1)=density_bubble
+mp_r(2)=density_rhs
+if (nof_species.ge.3) mp_r(3)=0.5d0*(density_lhs+density_rhs)
 mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=0.0d0
@@ -1996,14 +2029,16 @@ v1=0.0d0
 p1=101325
 
 
-r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
-ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
+r1=sum(mp_r(1:nof_species)*mp_a(1:nof_species))
+do rg_i=1,nof_species
+mp_ie(rg_i)=((p1+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+end do
+ie1=sum(mp_ie(1:nof_species)*mp_a(1:nof_species))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
 
 !vector of conserved variables now
+end if
 end if
 
 
@@ -2028,9 +2063,12 @@ veccos(1)=r1
 veccos(2)=r1*u1
 veccos(3)=r1*v1
 veccos(4)=e1
-veccos(5)=mp_r(1)*mp_a(1)
-veccos(6)=mp_r(2)*mp_a(2)
-veccos(7)=mp_a(1)
+do rg_i=1,nof_species
+veccos(4+rg_i)=mp_r(rg_i)*mp_a(rg_i)
+end do
+do rg_i=1,nof_species-1
+veccos(4+nof_species+rg_i)=mp_a(rg_i)
+end do
 
 
 

@@ -7,6 +7,36 @@ use transform
 implicit none
 contains
 
+subroutine set_multispecies_vtk_names(names)
+implicit none
+character(len=25),intent(inout)::names(20)
+integer::rg_i,name_i
+
+names(:)=''
+names(1)='density'
+names(2)='u'
+names(3)='v'
+if (dimensiona.eq.3)then
+	names(4)='w'
+	names(5)='pressure'
+else
+	names(4)='pressure'
+end if
+
+do rg_i=1,nof_species
+	name_i=dimensiona+2+rg_i
+	write(names(name_i),'(a,i0)') 'rho_vf',rg_i
+end do
+
+do rg_i=1,nof_species-1
+	name_i=dimensiona+2+nof_species+rg_i
+	write(names(name_i),'(a,i0)') 'volume_fraction',rg_i
+end do
+
+write(names(nof_variables+1),'(a,i0)') 'volume_fraction',nof_species
+names(nof_variables+2)='q'
+end subroutine set_multispecies_vtk_names
+
 
 subroutine outwritegridb
  !> @brief
@@ -15076,18 +15106,8 @@ if (dimensiona.eq.3)then
 
 
 			if (multispecies.eq.1)then
-			write_variables=nof_variables+1
-			!!specify the name of the variable names!!
-
-			variable_names(1)='density'
-			variable_names(2)='u'
-			variable_names(3)='v'
-			variable_names(4)='w'
-			variable_names(5)='pressure'
-			variable_names(6)='rho vf1'
-			variable_names(7)='rho vf2'
-			variable_names(8)='volume_fraction'
-			variable_names(9)='q'
+			write_variables=nof_variables+2
+			call set_multispecies_vtk_names(variable_names)
 
 
 			else
@@ -15160,17 +15180,8 @@ else
 
 
 		if (multispecies.eq.1)then
-		write_variables=nof_variables+1
-		!!specify the name of the variable names!!
-
-		variable_names(1)='density'
-		variable_names(2)='u'
-		variable_names(3)='v'
-		variable_names(4)='pressure'
-		variable_names(5)='rho vf1'
-		variable_names(6)='rho vf2'
-		variable_names(7)='volume_fraction'
-		variable_names(8)='q'
+		write_variables=nof_variables+2
+		call set_multispecies_vtk_names(variable_names)
 
 
 		else
@@ -15428,16 +15439,8 @@ variable_names_w(7)='pressure'
 
 
  if (itestcase.eq.-1)then
- write_variables_w=nof_variables+1
- variable_names_w(1)='density'
-variable_names_w(2)='u'
-variable_names_w(3)='v'
-variable_names_w(4)='w'
-variable_names_w(5)='pressure'
-variable_names_w(6)='rho vf1'
-variable_names_w(7)='rho vf2'
-variable_names_w(8)='volume_fraction'
-variable_names_w(9)='q'
+ write_variables_w=nof_variables+2
+ call set_multispecies_vtk_names(variable_names_w)
  end if
 
 
@@ -15500,15 +15503,8 @@ variable_names_w(6)='pressure'
  end if
 
  if (itestcase.eq.-1)then
- write_variables_w=nof_variables+1
- variable_names_w(1)='density'
-variable_names_w(2)='u'
-variable_names_w(3)='v'
-variable_names_w(4)='pressure'
-variable_names_w(5)='rho vf1'
-variable_names_w(6)='rho vf2'
-variable_names_w(7)='volume_fraction'
-variable_names_w(8)='q'
+ write_variables_w=nof_variables+2
+ call set_multispecies_vtk_names(variable_names_w)
  end if
 
 
@@ -15610,7 +15606,11 @@ temp_cord=3
 					rarray_part1(i,1:nof_variables)=leftv(1:nof_variables)
 										do j=nof_variables+1,write_variables-turbulenceequations
                                         if (multispecies.eq.1)then
+											if (j.eq.nof_variables+1)then
+											rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+											else
 											rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											end if
                                         else
 											if (realgas.eq.1)then
 											if (j.eq.nof_variables+1)then
@@ -15653,7 +15653,11 @@ temp_cord=3
 										do j=nof_variables+1,write_variables-turbulenceequations
 										if (multispecies.eq.1)then
 
+										if (j.eq.nof_variables+1)then
+										rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+										else
 										rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+										end if
                                         else
 											if (mood.eq.1)then
 											rarray_part1(i,j)=ielem_mood_o(i)
@@ -16374,7 +16378,11 @@ temp_cord=3
 					sol_vtu(i,1:nof_variables)=leftv(1:nof_variables)
 										do j=nof_variables+1,write_variables-turbulenceequations
                                         if (multispecies.eq.1)then
+										if (j.eq.nof_variables+1)then
+										sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+										else
 										sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+										end if
                                         else
                                         if (realgas.eq.1)then
 											if (j.eq.nof_variables+1)then
@@ -16416,7 +16424,11 @@ temp_cord=3
 										do j=nof_variables+1,write_variables-turbulenceequations
                                         if (multispecies.eq.1)then
 
+										if (j.eq.nof_variables+1)then
+										sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+										else
 										sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+										end if
                                         else
                                         if (mood.eq.1)then
                                          sol_vtu(i,j)=ielem_mood_o(i)
@@ -16628,7 +16640,7 @@ temp_imaxn=kmaxn
 
 				write(proc6,fmt='(i10)') it
 				write(proc7,fmt='(i10)') procx
-		buffer='    <Piece source="out_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf;write(300) trim(buffer)
+		buffer='    <Piece source="OUT_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf;write(300) trim(buffer)
    end do
   buffer='  </PUnstructuredGrid>'//lf;write(300) trim(buffer)
   buffer='</VTKFile>'//lf;write(300) trim(buffer)
@@ -16759,7 +16771,12 @@ temp_cord=3
 
 									!the next variable is always going to be an auxiliary
 									sol_vtu_w(i,1:nof_variables)=leftv(1:nof_variables)
+									if (multispecies.eq.1)then
+									sol_vtu_w(i,nof_variables+1)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+									sol_vtu_w(i,nof_variables+2)=ielem_vortex(1,iconsidered)
+									else
 									sol_vtu_w(i,nof_variables+1:nof_variables+1)=ielem_vortex(1,iconsidered)
+									end if
 									end if
 
 
@@ -17722,7 +17739,7 @@ real::mp_pinfr,gammar
 	
 					write(proc6,fmt='(i10)') it
 					write(proc7,fmt='(i10)') procx
-			buffer='    <Piece source="vol_aver_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf;write(300) trim(buffer)
+			buffer='    <Piece source="VOL_AVER_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf;write(300) trim(buffer)
 	   end do
 	  buffer='  </PUnstructuredGrid>'//lf;write(300) trim(buffer)
 	  buffer='</VTKFile>'//lf;write(300) trim(buffer)
@@ -17864,7 +17881,12 @@ integer::iconsidered,facex
 
 									!the next variable is always going to be an auxiliary
 									wrarray_part1(i,1:nof_variables)=leftv(1:nof_variables)
+									if (multispecies.eq.1)then
+									wrarray_part1(i,nof_variables+1)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+									wrarray_part1(i,nof_variables+2)=ielem_vortex(1,iconsidered)
+									else
 									wrarray_part1(i,nof_variables+1:nof_variables+1)=ielem_vortex(1,iconsidered)
+									end if
 									end if
 						
 									kkd_i=nof_variables+1

@@ -10,10 +10,32 @@ use dg_functions
 implicit none
 
 
- contains
- 
- 
-subroutine solution_integ(i,solution_integ2)
+	 contains
+	 
+	subroutine apply_multispecies_alpha_source(i,mp_source3,apply_dg)
+	implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+	integer,intent(in)::i
+	real,intent(in)::mp_source3
+	logical,intent(in)::apply_dg
+	integer::rg_i,alpha_var
+
+	if ((multispecies.eq.1).and.(mp_modelc.eq.0))then
+	  do rg_i=1,nof_species-1
+	    alpha_var=dimensiona+2+nof_species+rg_i
+	    if (apply_dg)then
+	      rhs_valdg(1,alpha_var,i)=rhs_valdg(1,alpha_var,i)-(u_c_val(1,alpha_var,i)*mp_source3)
+	    else
+	      rhs_val(alpha_var,i)=rhs_val(alpha_var,i)-(u_c_val(1,alpha_var,i)*mp_source3)
+	    end if
+	  end do
+	end if
+	end subroutine apply_multispecies_alpha_source
+	 
+	 
+	subroutine solution_integ(i,solution_integ2)
  implicit none
 #ifdef gpu
 !$omp declare target
@@ -753,22 +775,14 @@ subroutine calculate_fluxeshi_convective(n)
 				    end if
 
 		    end do
-                 if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
-                 
-                 end if
+	                 call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                  if (dg.eq.1)then
 
                    dg_rhs = dg_rhs_surf_integ - dg_rhs_vol_integ
                     rhs_valdg(:,:,i) = rhs_valdg(:,:,i) + dg_rhs
                     
-                    if (multispecies.eq.1)then
-
-
-						rhs_valdg(1,8,i)=rhs_valdg(1,8,i)-(u_c_val(1,8,i)*mp_source3)
-
-					end if
+	                    call apply_multispecies_alpha_source(i,mp_source3,.true.)
 
                    
 
@@ -1047,21 +1061,13 @@ subroutine calculate_fluxeshi_convective(n)
 				    end if
 ! 				    end if
 		    end do
-		     if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
-                 
-                 end if
+			     call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                     if (dg.eq.1)then
                     dg_rhs = dg_rhs_surf_integ - dg_rhs_vol_integ
                     rhs_valdg(:,:,i) = rhs_valdg(:,:,i) + dg_rhs
                     
-                    if (multispecies.eq.1)then
-
-						rhs_valdg(1,8,i)=rhs_valdg(1,8,i)-(u_c_val(1,8,i)*mp_source3)
-
-
-					end if
+	                    call apply_multispecies_alpha_source(i,mp_source3,.true.)
 
 
 
@@ -1302,11 +1308,7 @@ subroutine calculate_fluxeshi_convective2d(n)
 				    end if
 ! 				    end if
 		    end do
-		    if (multispecies.eq.1)then
-
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
-
-                 end if
+			    call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                if (dg == 1) then
 
@@ -1316,15 +1318,7 @@ subroutine calculate_fluxeshi_convective2d(n)
                dg_rhs = dg_rhs_surf_integ - dg_rhs_vol_integ
                 rhs_valdg(:,:,i) = rhs_valdg(:,:,i) + dg_rhs  
                 
-                if (multispecies.eq.1)then
-
-					rhs_valdg(1,7,i)=rhs_valdg(1,7,i)-(u_c_val(1,7,i)*mp_source3)
-
-
-                 
-                 
-                 
-                 end if
+	                call apply_multispecies_alpha_source(i,mp_source3,.true.)
                 
               
                  end if
@@ -1553,20 +1547,14 @@ subroutine calculate_fluxeshi_convective2d(n)
 
 				    end if
 		    end do
-		     if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
-                 
-                 end if
+			     call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                   if (dg == 1) then
                 
                dg_rhs = dg_rhs_surf_integ - dg_rhs_vol_integ
                 rhs_valdg(:,:,i) = rhs_valdg(:,:,i) + dg_rhs  
                
-                if (multispecies.eq.1)then
-                  rhs_valdg(1,7,i)=rhs_valdg(1,7,i)-(u_c_val(1,7,i)*mp_source3)
-
-                 end if
+	                call apply_multispecies_alpha_source(i,mp_source3,.true.)
                  
                  end if
                  
@@ -3802,10 +3790,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 				    end if
 !  				    end if
 		    end do
-                 if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
-                 
-                 end if
+                 call apply_multispecies_alpha_source(i,mp_source3,.false.)
             end if
 	end do
 #ifdef gpu
@@ -4258,10 +4243,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 				    end if
 ! 				    end if
 		    end do
-		     if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
-                 
-                 end if
+		     call apply_multispecies_alpha_source(i,mp_source3,.false.)
                 end if
 	end do
 #ifdef gpu
@@ -4475,10 +4457,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 				    end if
 ! 				    end if
 		    end do
-		    if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
-                 
-                 end if
+		    call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                  
             end if     
@@ -4891,10 +4870,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 
 				    end if
 		    end do
-		     if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
-                 
-                 end if
+		     call apply_multispecies_alpha_source(i,mp_source3,.false.)
                  
                  end if
 	end do
