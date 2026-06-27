@@ -15,11 +15,20 @@ subroutine read_ucns3d
 
  	integer :: inv,ix,ibleed,i,j
  	integer :: inv1
+	integer :: bubble_count,bubble_perturbation_modes
  	real :: angledum
+	real,parameter :: bubble_unset=-1.0d300
+	real :: shock_position_x,bubble_initial_radius,bubble_perturbation_amplitude,bubble_perturbation_phase
+	real :: left_pressure,right_pressure,bubble_pressure
+	real,dimension(3)::bubble_center,left_velocity,right_velocity,bubble_velocity
+	real,allocatable,dimension(:)::left_density,right_density,bubble_density
+	real,allocatable,dimension(:)::left_volume_fraction,right_volume_fraction,bubble_volume_fraction
 	character(48)::stamp1,frame
 	logical::here1,here2,here3,here5,here,here4,here7,here8,here9,bleedio,here10
 	character(len=8)  :: date_w
 	character(len=10) :: time_w
+	namelist /bubble_case/ shock_position_x,left_pressure,left_velocity,left_density,left_volume_fraction,right_pressure,right_velocity,right_density,right_volume_fraction,bubble_count
+	namelist /bubble/ bubble_center,bubble_initial_radius,bubble_perturbation_amplitude,bubble_perturbation_modes,bubble_perturbation_phase,bubble_pressure,bubble_velocity,bubble_density,bubble_volume_fraction
 
 	mp_modelc=0	!allaire by default
 
@@ -149,6 +158,134 @@ subroutine read_ucns3d
 	read(14,*)density_rhs
 	read(14,*)density_bubble
 	read(14,*)shock_pressure
+    close(14)
+	end if
+
+	if (allocated(bubble_case_left_density))deallocate(bubble_case_left_density,bubble_case_right_density,bubble_case_bubble_density)
+	if (allocated(bubble_case_left_vf))deallocate(bubble_case_left_vf,bubble_case_right_vf,bubble_case_bubble_vf)
+	if (allocated(bubble_case_bubble_radius))deallocate(bubble_case_bubble_radius,bubble_case_bubble_perturb_amp,bubble_case_bubble_perturb_phase,bubble_case_bubble_pressure_list)
+	if (allocated(bubble_case_bubble_perturbations))deallocate(bubble_case_bubble_perturbations)
+	if (allocated(bubble_case_bubble_center))deallocate(bubble_case_bubble_center,bubble_case_bubble_velocity_list)
+	if (allocated(bubble_case_bubble_density_list))deallocate(bubble_case_bubble_density_list,bubble_case_bubble_vf_list)
+	allocate(bubble_case_left_density(1:nof_species),bubble_case_right_density(1:nof_species),bubble_case_bubble_density(1:nof_species))
+	allocate(bubble_case_left_vf(1:nof_species),bubble_case_right_vf(1:nof_species),bubble_case_bubble_vf(1:nof_species))
+	allocate(left_density(1:nof_species),right_density(1:nof_species),bubble_density(1:nof_species))
+	allocate(left_volume_fraction(1:nof_species),right_volume_fraction(1:nof_species),bubble_volume_fraction(1:nof_species))
+	bubble_case_shock_x=bubble_unset
+	bubble_case_center=bubble_unset
+	bubble_case_radius=bubble_unset
+	bubble_case_perturb_amp=0.0d0
+	bubble_case_perturbations=0
+	bubble_case_perturb_phase=0.0d0
+	bubble_case_left_pressure=bubble_unset
+	bubble_case_right_pressure=bubble_unset
+	bubble_case_bubble_pressure=bubble_unset
+	bubble_case_left_velocity=bubble_unset
+	bubble_case_right_velocity=bubble_unset
+	bubble_case_bubble_velocity=bubble_unset
+	bubble_case_left_density=bubble_unset
+	bubble_case_right_density=bubble_unset
+	bubble_case_bubble_density=bubble_unset
+	bubble_case_left_vf=bubble_unset
+	bubble_case_right_vf=bubble_unset
+	bubble_case_bubble_vf=bubble_unset
+	bubble_case_n_bubbles=1
+
+	allocate(bubble_case_bubble_radius(1:bubble_case_n_bubbles),bubble_case_bubble_perturb_amp(1:bubble_case_n_bubbles),bubble_case_bubble_perturb_phase(1:bubble_case_n_bubbles),bubble_case_bubble_pressure_list(1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_perturbations(1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_center(1:3,1:bubble_case_n_bubbles),bubble_case_bubble_velocity_list(1:3,1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_density_list(1:nof_species,1:bubble_case_n_bubbles),bubble_case_bubble_vf_list(1:nof_species,1:bubble_case_n_bubbles))
+	bubble_case_bubble_center(1:3,1)=bubble_case_center(1:3)
+	bubble_case_bubble_radius(1)=bubble_case_radius
+	bubble_case_bubble_perturb_amp(1)=bubble_case_perturb_amp
+	bubble_case_bubble_perturbations(1)=bubble_case_perturbations
+	bubble_case_bubble_perturb_phase(1)=bubble_case_perturb_phase
+	bubble_case_bubble_pressure_list(1)=bubble_case_bubble_pressure
+	bubble_case_bubble_velocity_list(1:3,1)=bubble_case_bubble_velocity(1:3)
+	bubble_case_bubble_density_list(1:nof_species,1)=bubble_case_bubble_density(1:nof_species)
+	bubble_case_bubble_vf_list(1:nof_species,1)=bubble_case_bubble_vf(1:nof_species)
+
+	inquire (file='407.nml',exist=here2)
+	if (here2) then
+	open(14,file='407.nml',form='formatted',status='old',action='read')
+	shock_position_x=bubble_case_shock_x
+	left_pressure=bubble_case_left_pressure
+	left_velocity(1:3)=bubble_case_left_velocity(1:3)
+	left_density(1:nof_species)=bubble_case_left_density(1:nof_species)
+	left_volume_fraction(1:nof_species)=bubble_case_left_vf(1:nof_species)
+	right_pressure=bubble_case_right_pressure
+	right_velocity(1:3)=bubble_case_right_velocity(1:3)
+	right_density(1:nof_species)=bubble_case_right_density(1:nof_species)
+	right_volume_fraction(1:nof_species)=bubble_case_right_vf(1:nof_species)
+	bubble_count=-1
+	read(14,nml=bubble_case)
+	if (shock_position_x.le.bubble_unset*0.5d0) stop '407.nml: shock_position_x is required'
+	if (bubble_count.lt.1) stop '407.nml: bubble_count must be at least 1'
+	if (left_pressure.le.0.0d0) stop '407.nml: left_pressure must be positive'
+	if (right_pressure.le.0.0d0) stop '407.nml: right_pressure must be positive'
+	if (minval(left_velocity(1:3)).le.bubble_unset*0.5d0) stop '407.nml: left_velocity is required'
+	if (minval(right_velocity(1:3)).le.bubble_unset*0.5d0) stop '407.nml: right_velocity is required'
+	if (minval(left_density(1:nof_species)).le.0.0d0) stop '407.nml: left_density entries must be positive'
+	if (minval(right_density(1:nof_species)).le.0.0d0) stop '407.nml: right_density entries must be positive'
+	if (minval(left_volume_fraction(1:nof_species)).lt.0.0d0) stop '407.nml: left_volume_fraction entries must be non-negative'
+	if (minval(right_volume_fraction(1:nof_species)).lt.0.0d0) stop '407.nml: right_volume_fraction entries must be non-negative'
+	if (abs(sum(left_volume_fraction(1:nof_species))-1.0d0).gt.1.0d-8) stop '407.nml: left_volume_fraction must sum to 1'
+	if (abs(sum(right_volume_fraction(1:nof_species))-1.0d0).gt.1.0d-8) stop '407.nml: right_volume_fraction must sum to 1'
+	bubble_case_shock_x=shock_position_x
+	bubble_case_left_pressure=left_pressure
+	bubble_case_left_velocity(1:3)=left_velocity(1:3)
+	bubble_case_left_density(1:nof_species)=left_density(1:nof_species)
+	bubble_case_left_vf(1:nof_species)=left_volume_fraction(1:nof_species)
+	bubble_case_right_pressure=right_pressure
+	bubble_case_right_velocity(1:3)=right_velocity(1:3)
+	bubble_case_right_density(1:nof_species)=right_density(1:nof_species)
+	bubble_case_right_vf(1:nof_species)=right_volume_fraction(1:nof_species)
+	bubble_case_n_bubbles=max(1,bubble_count)
+	deallocate(bubble_case_bubble_radius,bubble_case_bubble_perturb_amp,bubble_case_bubble_perturb_phase,bubble_case_bubble_pressure_list)
+	deallocate(bubble_case_bubble_perturbations)
+	deallocate(bubble_case_bubble_center,bubble_case_bubble_velocity_list)
+	deallocate(bubble_case_bubble_density_list,bubble_case_bubble_vf_list)
+	allocate(bubble_case_bubble_radius(1:bubble_case_n_bubbles),bubble_case_bubble_perturb_amp(1:bubble_case_n_bubbles),bubble_case_bubble_perturb_phase(1:bubble_case_n_bubbles),bubble_case_bubble_pressure_list(1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_perturbations(1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_center(1:3,1:bubble_case_n_bubbles),bubble_case_bubble_velocity_list(1:3,1:bubble_case_n_bubbles))
+	allocate(bubble_case_bubble_density_list(1:nof_species,1:bubble_case_n_bubbles),bubble_case_bubble_vf_list(1:nof_species,1:bubble_case_n_bubbles))
+	do i=1,bubble_case_n_bubbles
+	bubble_center(1:3)=bubble_unset
+	bubble_initial_radius=bubble_unset
+	bubble_perturbation_amplitude=bubble_case_perturb_amp
+	bubble_perturbation_modes=bubble_case_perturbations
+	bubble_perturbation_phase=bubble_case_perturb_phase
+	bubble_pressure=bubble_unset
+	bubble_velocity(1:3)=bubble_unset
+	bubble_density(1:nof_species)=bubble_unset
+	bubble_volume_fraction(1:nof_species)=bubble_unset
+	read(14,nml=bubble)
+	if (minval(bubble_center(1:3)).le.bubble_unset*0.5d0) stop '407.nml: bubble_center is required for every bubble'
+	if (bubble_initial_radius.le.0.0d0) stop '407.nml: bubble_initial_radius must be positive'
+	if (bubble_pressure.le.0.0d0) stop '407.nml: bubble_pressure must be positive'
+	if (minval(bubble_velocity(1:3)).le.bubble_unset*0.5d0) stop '407.nml: bubble_velocity is required for every bubble'
+	if (minval(bubble_density(1:nof_species)).le.0.0d0) stop '407.nml: bubble_density entries must be positive'
+	if (minval(bubble_volume_fraction(1:nof_species)).lt.0.0d0) stop '407.nml: bubble_volume_fraction entries must be non-negative'
+	if (abs(sum(bubble_volume_fraction(1:nof_species))-1.0d0).gt.1.0d-8) stop '407.nml: bubble_volume_fraction must sum to 1'
+	bubble_case_bubble_center(1:3,i)=bubble_center(1:3)
+	bubble_case_bubble_radius(i)=bubble_initial_radius
+	bubble_case_bubble_perturb_amp(i)=bubble_perturbation_amplitude
+	bubble_case_bubble_perturbations(i)=bubble_perturbation_modes
+	bubble_case_bubble_perturb_phase(i)=bubble_perturbation_phase
+	bubble_case_bubble_pressure_list(i)=bubble_pressure
+	bubble_case_bubble_velocity_list(1:3,i)=bubble_velocity(1:3)
+	bubble_case_bubble_density_list(1:nof_species,i)=bubble_density(1:nof_species)
+	bubble_case_bubble_vf_list(1:nof_species,i)=bubble_volume_fraction(1:nof_species)
+	end do
+	bubble_case_center(1:3)=bubble_case_bubble_center(1:3,1)
+	bubble_case_radius=bubble_case_bubble_radius(1)
+	bubble_case_perturb_amp=bubble_case_bubble_perturb_amp(1)
+	bubble_case_perturbations=bubble_case_bubble_perturbations(1)
+	bubble_case_perturb_phase=bubble_case_bubble_perturb_phase(1)
+	bubble_case_bubble_pressure=bubble_case_bubble_pressure_list(1)
+	bubble_case_bubble_velocity(1:3)=bubble_case_bubble_velocity_list(1:3,1)
+	bubble_case_bubble_density(1:nof_species)=bubble_case_bubble_density_list(1:nof_species,1)
+	bubble_case_bubble_vf(1:nof_species)=bubble_case_bubble_vf_list(1:nof_species,1)
     close(14)
 	end if
 

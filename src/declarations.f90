@@ -23,6 +23,8 @@ integer::filter_type,fil_nc,fil_s,fil_alpha		!filter values
 integer::adda_type,adda_alpha_1,adda_alpha_2,adda_1_s,adda_2_s,adda_1,adda_2		!filter values
 integer::kill			 ! flag for killing a simulation
 integer::nof_perturbations405	!number of perturbations
+integer::bubble_case_perturbations,bubble_case_n_bubbles
+integer,allocatable,dimension(:)::bubble_case_bubble_perturbations
 integer::nderivative		  	! index of the numbering of the component of the polynomials 
 real::output_freq				!output frequency in simulation time
 integer::extended_bounds		!bounds strict or relaxed
@@ -170,6 +172,14 @@ real::indicator_par1,indicator_par2,indicator_par3, bound_lim  !troubled indicat
 real::rhc1,rhc2,rhc3,rhc4
 real::a405   !perturbations amplitude
 real::density_lhs, density_rhs, density_bubble, shock_pressure
+real::bubble_case_shock_x,bubble_case_radius,bubble_case_perturb_amp,bubble_case_perturb_phase
+real,dimension(3)::bubble_case_center,bubble_case_left_velocity,bubble_case_right_velocity,bubble_case_bubble_velocity
+real::bubble_case_left_pressure,bubble_case_right_pressure,bubble_case_bubble_pressure
+real,allocatable,dimension(:)::bubble_case_left_density,bubble_case_right_density,bubble_case_bubble_density
+real,allocatable,dimension(:)::bubble_case_left_vf,bubble_case_right_vf,bubble_case_bubble_vf
+real,allocatable,dimension(:)::bubble_case_bubble_radius,bubble_case_bubble_perturb_amp,bubble_case_bubble_perturb_phase,bubble_case_bubble_pressure_list
+real,allocatable,dimension(:,:)::bubble_case_bubble_center,bubble_case_bubble_velocity_list
+real,allocatable,dimension(:,:)::bubble_case_bubble_density_list,bubble_case_bubble_vf_list
 real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,pr_t5,pr_t6,pr_t7,pr_t8,prace_tx1,prace_tx2,prace_tx3
 !------------------start bleed parameters-------------------!
 integer::bleed_number,bleed,bleed_type

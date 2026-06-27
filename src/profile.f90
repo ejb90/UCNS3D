@@ -7,6 +7,51 @@ implicit none
 
 
  contains
+
+ subroutine set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
+ implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+ real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout)::veccos
+ real,dimension(1:nof_species),intent(in)::mp_r,mp_a
+ real,intent(in)::p1,u1,v1,w1
+ real,dimension(1:nof_species)::mp_ie
+ real::r1,skin1,e1,ie1
+ integer::rg_i,base_var
+
+ r1=sum(mp_r(1:nof_species)*mp_a(1:nof_species))
+ do rg_i=1,nof_species
+ mp_ie(rg_i)=((p1+(gamma_in(rg_i)*mp_pinf(rg_i)))/((gamma_in(rg_i)-1.0d0)))
+ end do
+ ie1=sum(mp_ie(1:nof_species)*mp_a(1:nof_species))
+
+ if (dimensiona.eq.3)then
+ skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
+ e1=(r1*skin1)+ie1
+ veccos(1)=r1
+ veccos(2)=r1*u1
+ veccos(3)=r1*v1
+ veccos(4)=r1*w1
+ veccos(5)=e1
+ base_var=5
+ else
+ skin1=(oo2)*((u1**2)+(v1**2))
+ e1=(r1*skin1)+ie1
+ veccos(1)=r1
+ veccos(2)=r1*u1
+ veccos(3)=r1*v1
+ veccos(4)=e1
+ base_var=4
+ end if
+
+ do rg_i=1,nof_species
+ veccos(base_var+rg_i)=mp_r(rg_i)*mp_a(rg_i)
+ end do
+ do rg_i=1,nof_species-1
+ veccos(base_var+nof_species+rg_i)=mp_a(rg_i)
+ end do
+ end subroutine set_multispecies_euler_state
  
  
  
@@ -533,6 +578,43 @@ veccos(8)=mp_a(1)
 
 
 
+end if
+
+
+if (initcond.eq.407)then
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
+
+if (pox(1).lt.bubble_case_shock_x)then
+mp_r(1:nof_species)=bubble_case_left_density(1:nof_species)
+mp_a(1:nof_species)=bubble_case_left_vf(1:nof_species)
+p1=bubble_case_left_pressure
+u1=bubble_case_left_velocity(1)
+v1=bubble_case_left_velocity(2)
+w1=bubble_case_left_velocity(3)
+else
+mp_r(1:nof_species)=bubble_case_right_density(1:nof_species)
+mp_a(1:nof_species)=bubble_case_right_vf(1:nof_species)
+p1=bubble_case_right_pressure
+u1=bubble_case_right_velocity(1)
+v1=bubble_case_right_velocity(2)
+w1=bubble_case_right_velocity(3)
+do rg_j=1,bubble_case_n_bubbles
+drad=sqrt(((pox(1)-bubble_case_bubble_center(1,rg_j))**2)+((poy(1)-bubble_case_bubble_center(2,rg_j))**2)+((poz(1)-bubble_case_bubble_center(3,rg_j))**2))
+theta1=atan2(poy(1)-bubble_case_bubble_center(2,rg_j),pox(1)-bubble_case_bubble_center(1,rg_j))
+pr_radius=bubble_case_bubble_radius(rg_j)+bubble_case_bubble_perturb_amp(rg_j)*cos(dble(bubble_case_bubble_perturbations(rg_j))*theta1+bubble_case_bubble_perturb_phase(rg_j))
+if (drad.le.pr_radius)then
+mp_r(1:nof_species)=bubble_case_bubble_density_list(1:nof_species,rg_j)
+mp_a(1:nof_species)=bubble_case_bubble_vf_list(1:nof_species,rg_j)
+p1=bubble_case_bubble_pressure_list(rg_j)
+u1=bubble_case_bubble_velocity_list(1,rg_j)
+v1=bubble_case_bubble_velocity_list(2,rg_j)
+w1=bubble_case_bubble_velocity_list(3,rg_j)
+end if
+end do
+end if
+
+call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
 end if
 
 
@@ -2073,6 +2155,43 @@ end do
 
 
 
+end if
+
+
+if (initcond.eq.407)then
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
+
+if (pox(1).lt.bubble_case_shock_x)then
+mp_r(1:nof_species)=bubble_case_left_density(1:nof_species)
+mp_a(1:nof_species)=bubble_case_left_vf(1:nof_species)
+p1=bubble_case_left_pressure
+u1=bubble_case_left_velocity(1)
+v1=bubble_case_left_velocity(2)
+w1=0.0d0
+else
+mp_r(1:nof_species)=bubble_case_right_density(1:nof_species)
+mp_a(1:nof_species)=bubble_case_right_vf(1:nof_species)
+p1=bubble_case_right_pressure
+u1=bubble_case_right_velocity(1)
+v1=bubble_case_right_velocity(2)
+w1=0.0d0
+do rg_j=1,bubble_case_n_bubbles
+drad=sqrt(((pox(1)-bubble_case_bubble_center(1,rg_j))**2)+((poy(1)-bubble_case_bubble_center(2,rg_j))**2))
+theta1=atan2(poy(1)-bubble_case_bubble_center(2,rg_j),pox(1)-bubble_case_bubble_center(1,rg_j))
+pr_radius=bubble_case_bubble_radius(rg_j)+bubble_case_bubble_perturb_amp(rg_j)*cos(dble(bubble_case_bubble_perturbations(rg_j))*theta1+bubble_case_bubble_perturb_phase(rg_j))
+if (drad.le.pr_radius)then
+mp_r(1:nof_species)=bubble_case_bubble_density_list(1:nof_species,rg_j)
+mp_a(1:nof_species)=bubble_case_bubble_vf_list(1:nof_species,rg_j)
+p1=bubble_case_bubble_pressure_list(rg_j)
+u1=bubble_case_bubble_velocity_list(1,rg_j)
+v1=bubble_case_bubble_velocity_list(2,rg_j)
+w1=0.0d0
+end if
+end do
+end if
+
+call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
 end if
 
 

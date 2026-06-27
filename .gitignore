@@ -39,3 +39,4 @@ tmp/
 .vscode/dryrun.log
 
 src/*.a
+src/ucns3d_p
