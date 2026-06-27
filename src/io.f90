@@ -8,9 +8,9 @@ implicit none
 contains
 
 subroutine set_multispecies_vtk_names(names)
-implicit none
-character(len=25),intent(inout)::names(20)
-integer::rg_i,name_i
+	implicit none
+	character(len=25),intent(inout)::names(:)
+	integer::rg_i,name_i
 
 names(:)=''
 names(1)='density'
@@ -33,9 +33,75 @@ do rg_i=1,nof_species-1
 	write(names(name_i),'(a,i0)') 'volume_fraction',rg_i
 end do
 
-write(names(nof_variables+1),'(a,i0)') 'volume_fraction',nof_species
-names(nof_variables+2)='q'
-end subroutine set_multispecies_vtk_names
+	write(names(nof_variables+1),'(a,i0)') 'volume_fraction',nof_species
+	names(nof_variables+2)='q'
+	names(nof_variables+3)='schlieren'
+	end subroutine set_multispecies_vtk_names
+
+function synthetic_schlieren_density(n,cell_id) result(schlieren)
+	implicit none
+	integer,intent(in)::n,cell_id
+	real::schlieren
+	real,dimension(3,3)::ata
+	real,dimension(3)::atb,grad,delta,rowtmp
+	real::drho,pivot,factor,tmp
+	integer::face_id,neighbor_id,local_cells,dim_i,row_i,col_i,pivot_row
+
+	schlieren=0.0d0
+	ata=0.0d0
+	atb=0.0d0
+	grad=0.0d0
+	local_cells=size(u_c_val,3)
+
+	do face_id=1,size(ielem_ineigh,1)
+		neighbor_id=ielem_ineigh(face_id,cell_id)
+		if (neighbor_id.ge.1.and.neighbor_id.le.local_cells)then
+			if (allocated(ielem_ineighb))then
+				if (ielem_ineighb(face_id,cell_id).ne.n) cycle
+			end if
+			delta(1)=ielem_xxc(neighbor_id)-ielem_xxc(cell_id)
+			delta(2)=ielem_yyc(neighbor_id)-ielem_yyc(cell_id)
+			delta(3)=ielem_zzc(neighbor_id)-ielem_zzc(cell_id)
+			drho=u_c_val(1,1,neighbor_id)-u_c_val(1,1,cell_id)
+			do row_i=1,dimensiona
+				atb(row_i)=atb(row_i)+delta(row_i)*drho
+				do col_i=1,dimensiona
+					ata(row_i,col_i)=ata(row_i,col_i)+delta(row_i)*delta(col_i)
+				end do
+			end do
+		end if
+	end do
+
+	do dim_i=1,dimensiona
+		pivot_row=dim_i
+		do row_i=dim_i+1,dimensiona
+			if (abs(ata(row_i,dim_i)).gt.abs(ata(pivot_row,dim_i))) pivot_row=row_i
+		end do
+		if (abs(ata(pivot_row,dim_i)).lt.1.0d-30) return
+		if (pivot_row.ne.dim_i)then
+			rowtmp=ata(dim_i,:)
+			ata(dim_i,:)=ata(pivot_row,:)
+			ata(pivot_row,:)=rowtmp
+			tmp=atb(dim_i)
+			atb(dim_i)=atb(pivot_row)
+			atb(pivot_row)=tmp
+		end if
+		pivot=ata(dim_i,dim_i)
+		do row_i=dim_i+1,dimensiona
+			factor=ata(row_i,dim_i)/pivot
+			ata(row_i,dim_i:dimensiona)=ata(row_i,dim_i:dimensiona)-factor*ata(dim_i,dim_i:dimensiona)
+			atb(row_i)=atb(row_i)-factor*atb(dim_i)
+		end do
+	end do
+
+	do dim_i=dimensiona,1,-1
+		tmp=atb(dim_i)
+		if (dim_i.lt.dimensiona) tmp=tmp-sum(ata(dim_i,dim_i+1:dimensiona)*grad(dim_i+1:dimensiona))
+		grad(dim_i)=tmp/ata(dim_i,dim_i)
+	end do
+
+	schlieren=sqrt(sum(grad(1:dimensiona)*grad(1:dimensiona)))
+end function synthetic_schlieren_density
 
 
 subroutine outwritegridb
@@ -15105,9 +15171,9 @@ if (dimensiona.eq.3)then
 
 
 
-			if (multispecies.eq.1)then
-			write_variables=nof_variables+2
-			call set_multispecies_vtk_names(variable_names)
+				if (multispecies.eq.1)then
+				write_variables=nof_variables+3
+				call set_multispecies_vtk_names(variable_names)
 
 
 			else
@@ -15179,9 +15245,9 @@ else
 
 
 
-		if (multispecies.eq.1)then
-		write_variables=nof_variables+2
-		call set_multispecies_vtk_names(variable_names)
+			if (multispecies.eq.1)then
+			write_variables=nof_variables+3
+			call set_multispecies_vtk_names(variable_names)
 
 
 		else
@@ -15605,12 +15671,16 @@ temp_cord=3
 
 					rarray_part1(i,1:nof_variables)=leftv(1:nof_variables)
 										do j=nof_variables+1,write_variables-turbulenceequations
-                                        if (multispecies.eq.1)then
-											if (j.eq.nof_variables+1)then
-											rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
-											else
-											rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
-											end if
+	                                        if (multispecies.eq.1)then
+												if (j.eq.nof_variables+1)then
+												rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+												else if (j.eq.nof_variables+2)then
+												rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+												else if (j.eq.nof_variables+3)then
+												rarray_part1(i,j)=synthetic_schlieren_density(n,i)
+												else
+												rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+												end if
                                         else
 											if (realgas.eq.1)then
 											if (j.eq.nof_variables+1)then
@@ -15653,11 +15723,15 @@ temp_cord=3
 										do j=nof_variables+1,write_variables-turbulenceequations
 										if (multispecies.eq.1)then
 
-										if (j.eq.nof_variables+1)then
-										rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
-										else
-										rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
-										end if
+											if (j.eq.nof_variables+1)then
+											rarray_part1(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+											else if (j.eq.nof_variables+2)then
+											rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											else if (j.eq.nof_variables+3)then
+											rarray_part1(i,j)=synthetic_schlieren_density(n,i)
+											else
+											rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											end if
                                         else
 											if (mood.eq.1)then
 											rarray_part1(i,j)=ielem_mood_o(i)
@@ -16377,12 +16451,16 @@ temp_cord=3
 				end if
 					sol_vtu(i,1:nof_variables)=leftv(1:nof_variables)
 										do j=nof_variables+1,write_variables-turbulenceequations
-                                        if (multispecies.eq.1)then
-										if (j.eq.nof_variables+1)then
-										sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
-										else
-										sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
-										end if
+	                                        if (multispecies.eq.1)then
+											if (j.eq.nof_variables+1)then
+											sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+											else if (j.eq.nof_variables+2)then
+											sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											else if (j.eq.nof_variables+3)then
+											sol_vtu(i,j)=synthetic_schlieren_density(n,i)
+											else
+											sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											end if
                                         else
                                         if (realgas.eq.1)then
 											if (j.eq.nof_variables+1)then
@@ -16422,13 +16500,17 @@ temp_cord=3
 				end if
 					sol_vtu(i,1:nof_variables)=leftv(1:nof_variables)
 										do j=nof_variables+1,write_variables-turbulenceequations
-                                        if (multispecies.eq.1)then
+	                                        if (multispecies.eq.1)then
 
-										if (j.eq.nof_variables+1)then
-										sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
-										else
-										sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
-										end if
+											if (j.eq.nof_variables+1)then
+											sol_vtu(i,j)=1.0d0-sum(leftv(dimensiona+2+nof_species+1:nof_variables))
+											else if (j.eq.nof_variables+2)then
+											sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											else if (j.eq.nof_variables+3)then
+											sol_vtu(i,j)=synthetic_schlieren_density(n,i)
+											else
+											sol_vtu(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
+											end if
                                         else
                                         if (mood.eq.1)then
                                          sol_vtu(i,j)=ielem_mood_o(i)

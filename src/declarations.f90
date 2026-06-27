@@ -148,10 +148,10 @@ integer::kdum1,kdum2,write_variables,write_variables_av,nodes_part
 integer::wkdum1,wkdum2,write_variables_w,write_variables_av_w,wnodes_part
 integer::datatypex,datatypey,datatypez,datatypexx,datatypeyy,datatypeint
 integer,dimension(1)::kdum3
-character(len=25)::variable_names(20),variable_names_av(20)
+character(len=25)::variable_names(64),variable_names_av(64)
 integer::wdatatypex,wdatatypey,wdatatypez,wdatatypexx,wdatatypeyy,wdatatypeint
 integer,dimension(1)::wkdum3
-character(len=25)::variable_names_w(20),variable_names_av_w(20)
+character(len=25)::variable_names_w(64),variable_names_av_w(64)
 integer::kloopx,iloopx,totwallsc,iwmaxe
 integer,allocatable,dimension(:)::wallit,offsetwall,wall_nodes,wallcx,offsetwc,offsetwc_g,wallcx_g,wallshape,wallshape_g,wallshape_g2
 integer,allocatable,dimension(:,:)::wall_l
