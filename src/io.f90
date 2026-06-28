@@ -15628,8 +15628,9 @@ character(len=20)::proc,filex,proc3
 real,allocatable,dimension(:)::array
 logical::here1
 real::in1,iocpt1,iocpt2,iocpt3,iocpt4,ptemp
-integer(kind=mpi_offset_kind) :: disp_in_file, tmp,disp_init,offset_temp,bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
-integer                     :: nbytes,eight
+	integer(kind=mpi_offset_kind) :: disp_in_file, tmp,disp_init,offset_temp,bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+	integer(kind=mpi_offset_kind) :: block_start,payload_start,write_offset
+	integer                     :: nbytes,eight,byte_count,local_conn_pos
 character(len=35)           :: offset_stamp,tempstamp1,tempstamp2
 character(len=200)          :: buffer
 character(len=1)            :: lf
@@ -15873,172 +15874,98 @@ end if
 call mpi_barrier(mpi_comm_world,ierror)
 
 
-					call mpi_file_open(mpi_comm_world,vtu,mpi_mode_wronly,mpi_info_null, fh, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_open '//trim(vtu),ierror)
-					call mpi_file_get_size(fh, disp_in_file, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_get_size',ierror)
-					disp_init=disp_in_file
+	call mpi_file_open(mpi_comm_world,vtu,mpi_mode_wronly,mpi_info_null, fh, ierror)
+	call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_open '//trim(vtu),ierror)
+	call mpi_file_get_size(fh, disp_in_file, ierror)
+	call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_get_size',ierror)
+	disp_init=disp_in_file
 
-				!----write time stamp----!
-					if (n.eq.0)then
-					call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: seek time header',ierror)
-					bytes=size_of_real
-					call mpi_file_write(fh, bytes, nbytes, mpi_integer, mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write time byte count',ierror)
-					disp_in_file = disp_in_file + size_of_int
-					call mpi_file_seek(fh, disp_in_file, mpi_seek_set,ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: seek time value',ierror)
-					call mpi_file_write(fh, t, nbytes, mpi_double_precision, mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write time value',ierror)
-				disp_in_file=disp_in_file+size_of_real
-				else
-				disp_in_file=disp_in_file+size_of_int+size_of_real
-				end if
-				!end time stamp
+	if (n.eq.0)then
+		byte_count=size_of_real
+		call mpi_file_write_at(fh, disp_in_file, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write time byte count',ierror)
+		call mpi_file_write_at(fh, disp_in_file+size_of_int, t, 1, mpi_double_precision, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write time value',ierror)
+	end if
+	disp_in_file=disp_in_file+size_of_int+size_of_real
 
+	do j=1,write_variables
+		block_start=disp_in_file
+		payload_start=block_start+size_of_int
+		if (n.eq.0)then
+			byte_count=int(temp_imaxe*size_of_real)
+			call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+			call check_vtu_mpi_io('parallel_vtk_combine: write variable byte count',ierror)
+		end if
+		do i=1,kmaxe
+			write_offset=payload_start+int(dispart1(i),mpi_offset_kind)*size_of_real
+			call mpi_file_write_at(fh, write_offset, rarray_part1(i,j), 1, mpi_double_precision, mpi_status_ignore, ierror)
+			call check_vtu_mpi_io('parallel_vtk_combine: write variable payload',ierror)
+		end do
+		disp_in_file=disp_in_file+size_of_int+temp_imaxe*size_of_real
+	end do
 
+	block_start=disp_in_file
+	payload_start=block_start+size_of_int
+	if (n.eq.0)then
+		byte_count=int(temp_imaxn*size_of_real*temp_dims)
+		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write coordinate byte count',ierror)
+	end if
+	do i=1,kmaxn_p
+		write_offset=payload_start+int(dispart4(i),mpi_offset_kind)*size_of_real
+		call mpi_file_write_at(fh, write_offset, rarray_part4((i-1)*int(temp_dims)+1), int(temp_dims), mpi_double_precision, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write coordinates',ierror)
+	end do
+	disp_in_file=disp_in_file+size_of_int+temp_imaxn*size_of_real*temp_dims
 
+	block_start=disp_in_file
+	payload_start=block_start+size_of_int
+	if (n.eq.0)then
+		byte_count=int(size_of_int*typ_countn_global)
+		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write connectivity byte count',ierror)
+	end if
+	local_conn_pos=1
+	do i=1,kmaxe
+		write_offset=payload_start+int(dispart2(i),mpi_offset_kind)*size_of_int
+		call mpi_file_write_at(fh, write_offset, iarray_part2(local_conn_pos), typ_nodesn(i), mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write connectivity',ierror)
+		local_conn_pos=local_conn_pos+typ_nodesn(i)
+	end do
+	disp_in_file=disp_in_file+size_of_int+size_of_int*typ_countn_global
 
-					do i=1,write_variables
-					call mpi_file_set_view(fh, disp_in_file, mpi_integer,datatypeint,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view variable byte count',ierror)
+	block_start=disp_in_file
+	payload_start=block_start+size_of_int
+	if (n.eq.0)then
+		byte_count=int(temp_imaxe*size_of_int)
+		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write offsets byte count',ierror)
+	end if
+	do i=1,kmaxe
+		write_offset=payload_start+int(dispart5(i),mpi_offset_kind)*size_of_int
+		call mpi_file_write_at(fh, write_offset, iarray_part5(i), 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write offsets',ierror)
+	end do
+	disp_in_file=disp_in_file+size_of_int+temp_imaxe*size_of_int
 
-				if (n.eq.0)then
-				bytes=temp_imaxe*size_of_real
-				nbytes=1
-				else
-				bytes=0
-				nbytes=0
-				end if
+	block_start=disp_in_file
+	payload_start=block_start+size_of_int
+	if (n.eq.0)then
+		byte_count=int(temp_imaxe*size_of_int)
+		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write types byte count',ierror)
+	end if
+	do i=1,kmaxe
+		write_offset=payload_start+int(dispart3(i),mpi_offset_kind)*size_of_int
+		call mpi_file_write_at(fh, write_offset, iarray_part3(i), 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write types',ierror)
+	end do
+	disp_in_file=disp_in_file+size_of_int+temp_imaxe*size_of_int
 
-					call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write variable byte count',ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-				!write variables---within loop
-					call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatypex,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view variable payload',ierror)
-					call mpi_file_write_all(fh,rarray_part1(1:kmaxe,i),kmaxe*part1_end, mpi_double_precision,mpi_status_ignore,ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write variable payload',ierror)
-				!end write variables---within loop
-				disp_in_file=disp_in_file+temp_imaxe*size_of_real
-				!end loop
-				end do
-
-! 				if (n.eq.0)print*,"location2",disp_in_file
-
-					call mpi_file_set_view(fh, disp_in_file, mpi_integer,datatypeint,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view coordinate byte count',ierror)
-
-				if (n.eq.0)then
-				bytes=temp_imaxn*size_of_real*temp_dims
-				nbytes=1
-				else
-				bytes=0
-				nbytes=0
-				end if
-
-					call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write coordinate byte count',ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-					call mpi_file_set_view(fh, disp_in_file,mpi_double_precision,datatypez,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view coordinates',ierror)
-					call mpi_file_write_all(fh,rarray_part4,kmaxn_p*part4_end,mpi_double_precision,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write coordinates',ierror)
-
-
-				disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
-
-! 				if (n.eq.0)print*,"location3",disp_in_file
-
-
-					call mpi_file_set_view(fh, disp_in_file, mpi_integer,datatypeint,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view connectivity byte count',ierror)
-
-				if (n.eq.0)then
-				bytes=size_of_int*typ_countn_global!temp_imaxe*size_of_int*temp_node
-				nbytes=1
-				else
-				bytes=0
-				nbytes=0
-				end if
-
-					call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write connectivity byte count',ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-					call mpi_file_set_view(fh,disp_in_file,mpi_integer,datatypey,'native',mpi_info_null,ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view connectivity',ierror)
-
-					call mpi_file_write_all(fh,iarray_part2,typ_countn, mpi_integer,status,ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write connectivity',ierror)
-
-				disp_in_file=disp_in_file+(size_of_int*typ_countn_global)!(temp_imaxe*size_of_int*temp_node)
-
-! 				if (n.eq.0)print*,"location4",disp_in_file
-
-					call mpi_file_set_view(fh, disp_in_file, mpi_integer,datatypeint,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view offsets byte count',ierror)
-
-				if (n.eq.0)then
-				bytes=temp_imaxe*size_of_int
-				nbytes=1
-				else
-				bytes=0
-				nbytes=0
-				end if
-
-					call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write offsets byte count',ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-
-					call mpi_file_set_view(fh, disp_in_file,mpi_integer,datatypexx, 'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view offsets',ierror)
-					call mpi_file_write_all(fh, iarray_part5,kmaxe*part1_end, mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write offsets',ierror)
-
-				disp_in_file=disp_in_file+(temp_imaxe*size_of_int)
-
-
-! 				if (n.eq.0)print*,"location5",disp_in_file
-
-
-					call mpi_file_set_view(fh, disp_in_file, mpi_integer,datatypeint,'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view types byte count',ierror)
-
-				if (n.eq.0)then
-				bytes=temp_imaxe*size_of_int
-				nbytes=1
-				else
-				bytes=0
-				nbytes=0
-				end if
-
-					call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write types byte count',ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-					call mpi_file_set_view(fh, disp_in_file,mpi_integer,datatypeyy, 'native',mpi_info_null, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: set view types',ierror)
-					call mpi_file_write_all(fh, iarray_part3,kmaxe*part1_end, mpi_integer,mpi_status_ignore, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: write types',ierror)
-
-
-				disp_in_file=disp_in_file+(temp_imaxe*size_of_int)
-
-					call mpi_file_close(fh, ierror)
-					call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_close',ierror)
-				call mpi_barrier(mpi_comm_world,ierror)
+	call mpi_file_close(fh, ierror)
+	call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_close',ierror)
+	call mpi_barrier(mpi_comm_world,ierror)
 
 
 
