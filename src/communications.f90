@@ -355,13 +355,43 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 
 
 
-	if (dimensiona.eq.3)then
-	allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
-	else
-	allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
-	end if
+		if (dimensiona.eq.3)then
+		allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
+		else
+		allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
+		end if
 
-	index_int=0
+		if (isize.eq.1)then
+		allocate(diexchanger(1),diexchanger1(1),diexchanges(1),diexchanges1(1))
+		diexchanger(1)%procid=n;diexchanger(1)%tot=0
+		diexchanger1(1)%procid=n;diexchanger1(1)%tot=0
+		diexchanges(1)%procid=n;diexchanges(1)%tot=0
+		diexchanges1(1)%procid=n;diexchanges1(1)%tot=0
+		allocate(diexchanger(1)%muchineed(1));diexchanger(1)%muchineed=0
+		allocate(diexchanger1(1)%muchineed(1));diexchanger1(1)%muchineed=0
+		allocate(diexchanges(1)%muchtheyneed(1));diexchanges(1)%muchtheyneed=0
+		allocate(diexchanges1(1)%muchtheyneed(1));diexchanges1(1)%muchtheyneed=0
+		allocate(diexchanger1(1)%whatineed(0),diexchanger1(1)%localref(0),diexchanger1(1)%sideineed(0))
+		allocate(diexchanger1(1)%sideineedn(0),diexchanger1(1)%qineed(0),diexchanger1(1)%nodex(0,ifdn))
+		allocate(diexchanges1(1)%whattheyneed(0),diexchanges(1)%localref(0),diexchanges(1)%sidetheyneed(0))
+		allocate(diexchanges1(1)%sidetheyneedn(0),diexchanges1(1)%qtheyneed(0),diexchanges(1)%qtheyneed(0))
+		allocate(diexchanges1(1)%nodex(0,ifdn))
+
+		allocate(direcexr(1),direcexr1(1),direcexs(1),direcexs1(1))
+		direcexr(1)%procid=n;direcexr(1)%tot=0
+		direcexr1(1)%procid=n;direcexr1(1)%tot=0
+		direcexs(1)%procid=n;direcexs(1)%tot=0
+		direcexs1(1)%procid=n;direcexs1(1)%tot=0
+		allocate(direcexr(1)%muchineed(1));direcexr(1)%muchineed=0
+		allocate(direcexr1(1)%muchineed(1));direcexr1(1)%muchineed=0
+		allocate(direcexs(1)%muchtheyneed(1));direcexs(1)%muchtheyneed=0
+		allocate(direcexs1(1)%muchtheyneed(1));direcexs1(1)%muchtheyneed=0
+		allocate(direcexr1(1)%whatineed(0),direcexr1(1)%localref(0),direcexr1(1)%ishape(0))
+		allocate(direcexs1(1)%whattheyneed(0),direcexs(1)%localref(0),direcexs1(1)%ishape(0))
+		return
+		end if
+
+		index_int=0
 	do k=1,kmaxe
 	      if (ielem_interior(k).eq.1)then
 	      index_int=index_int+1
@@ -3203,12 +3233,14 @@ end if
 
 
 
-!first allocate memory for high-order solution exchanges
-allocate(halo_len(1:ineedhalo),halo_offset(1:ineedhalo),halo_proc(1:ineedhalo))
-allocate(halos_len(1:ineedhalos),halos_offset(1:ineedhalos),halos_proc(1:ineedhalos))
-do i=1,ineedhalo
-      halo_len(i)=direcexr(i)%muchineed(1)  !store the number of elements needed per cpu
-      halo_proc(i)=direcexr(i)%procid
+	!first allocate memory for high-order solution exchanges
+	allocate(halo_len(1:max(1,ineedhalo)),halo_offset(1:max(1,ineedhalo)),halo_proc(1:max(1,ineedhalo)))
+	allocate(halos_len(1:max(1,ineedhalos)),halos_offset(1:max(1,ineedhalos)),halos_proc(1:max(1,ineedhalos)))
+	halo_len=0;halo_offset=1;halo_proc=n
+	halos_len=0;halos_offset=1;halos_proc=n
+	do i=1,ineedhalo
+	      halo_len(i)=direcexr(i)%muchineed(1)  !store the number of elements needed per cpu
+	      halo_proc(i)=direcexr(i)%procid
 end do
 do i=1,ineedhalos
       halos_len(i)=direcexs(i)%muchtheyneed(1)  !store the number of elements needed per cpu
@@ -3236,20 +3268,28 @@ end do
 
 
 
-halo_total = halo_offset(ineedhalo) + halo_len(ineedhalo) - 1
-halos_total = halos_offset(ineedhalos) + halos_len(ineedhalos) - 1
+	if (ineedhalo.gt.0)then
+	halo_total = halo_offset(ineedhalo) + halo_len(ineedhalo) - 1
+	else
+	halo_total = 0
+	end if
+	if (ineedhalos.gt.0)then
+	halos_total = halos_offset(ineedhalos) + halos_len(ineedhalos) - 1
+	else
+	halos_total = 0
+	end if
 
-allocate(solhir(halo_total,1:ilength1));solhir=zero
-allocate(solhis(halos_total,1:ilength1));solhis=zero
+	allocate(solhir(max(1,halo_total),1:ilength1));solhir=zero
+	allocate(solhis(max(1,halos_total),1:ilength1));solhis=zero
 
-allocate(solhir_flat(1:halo_total*ilength1));solhir_flat=zero
-allocate(solhis_flat(1:halos_total*ilength1));solhis_flat=zero
-
-
+	allocate(solhir_flat(1:max(1,halo_total*ilength1)));solhir_flat=zero
+	allocate(solhis_flat(1:max(1,halos_total*ilength1)));solhis_flat=zero
 
 
 
-allocate(solhi_loc(halos_total))
+
+
+	allocate(solhi_loc(max(1,halos_total)))
 
 do i=1,ineedhalos
 	do k=1,halos_len(i)
@@ -3264,18 +3304,20 @@ end do
 
 
 
-if (adda.eq.1)then
-allocate(solhird(halo_total));solhird=zero
-allocate(solhisd(halos_total));solhisd=zero
-end if
+	if (adda.eq.1)then
+	allocate(solhird(max(1,halo_total)));solhird=zero
+	allocate(solhisd(max(1,halos_total)));solhisd=zero
+	end if
 
 
 
 
-allocate(bound_len(ineedbound), bound_offset(ineedbound),bound_proc(ineedbound))
+	allocate(bound_len(max(1,ineedbound)), bound_offset(max(1,ineedbound)),bound_proc(max(1,ineedbound)))
+	bound_len=0;bound_offset=1;bound_proc=n
 
 
-allocate(bounds_len(ineedbounds), bounds_offset(ineedbounds),bounds_proc(ineedbounds))
+	allocate(bounds_len(max(1,ineedbounds)), bounds_offset(max(1,ineedbounds)),bounds_proc(max(1,ineedbounds)))
+	bounds_len=0;bounds_offset=1;bounds_proc=n
 
 do i = 1, ineedbound
   bound_len(i) = diexchanger(i)%muchineed(1)
@@ -3294,7 +3336,11 @@ end do
     bound_offset(j) = bound_offset(j-1) + bound_len(j-1)
   end do
 
-  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
+	  if (ineedbound.gt.0)then
+	  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
+	  else
+	  bound_total = 0
+	  end if
 
 
    bounds_offset(1) = 1
@@ -3302,11 +3348,19 @@ end do
     bounds_offset(j) = bounds_offset(j-1) + bounds_len(j-1)
   end do
 
-  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
-  bounds_total = bounds_offset(ineedbounds) + bounds_len(ineedbounds) - 1
+	  if (ineedbound.gt.0)then
+	  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
+	  else
+	  bound_total = 0
+	  end if
+	  if (ineedbounds.gt.0)then
+	  bounds_total = bounds_offset(ineedbounds) + bounds_len(ineedbounds) - 1
+	  else
+	  bounds_total = 0
+	  end if
 
 
-  allocate(need_side(bounds_total),need_q(bounds_total),need_loc(bound_total))
+	  allocate(need_side(max(1,bounds_total)),need_q(max(1,bounds_total)),need_loc(max(1,bounds_total)))
 
   ! Flat per-neighbor k-lists into a single row-based list
   do i = 1, ineedbounds
@@ -3320,28 +3374,28 @@ end do
 
 
 
-  allocate(boundhir(bound_total,1:ilength2));boundhir=zero
-  allocate(boundhis(bounds_total,1:ilength2));boundhis=zero
-  allocate(boundhir_flat(1:bound_total*ilength2));boundhir_flat=zero
-  allocate(boundhis_flat(1:bounds_total*ilength2));boundhis_flat=zero
-  if (dg.eq.1)then
-  allocate(boundhir_dg(bound_total,1:ilength2)); boundhir_dg=zero
-  allocate(boundhis_dg(bounds_total,1:ilength2)); boundhis_dg=zero
-  allocate(boundhir_dgflat(1:bound_total*ilength2));boundhir_dgflat=zero
-  allocate(boundhis_dgflat(1:bounds_total*ilength2));boundhis_dgflat=zero
-  end if
+	  allocate(boundhir(max(1,bound_total),1:ilength2));boundhir=zero
+	  allocate(boundhis(max(1,bounds_total),1:ilength2));boundhis=zero
+	  allocate(boundhir_flat(1:max(1,bound_total*ilength2)));boundhir_flat=zero
+	  allocate(boundhis_flat(1:max(1,bounds_total*ilength2)));boundhis_flat=zero
+	  if (dg.eq.1)then
+	  allocate(boundhir_dg(max(1,bound_total),1:ilength2)); boundhir_dg=zero
+	  allocate(boundhis_dg(max(1,bounds_total),1:ilength2)); boundhis_dg=zero
+	  allocate(boundhir_dgflat(1:max(1,bound_total*ilength2)));boundhir_dgflat=zero
+	  allocate(boundhis_dgflat(1:max(1,bounds_total*ilength2)));boundhis_dgflat=zero
+	  end if
 
-  if (mood.eq.1)then
-  allocate(boundhirm(bound_total)); boundhirm=zero
-   allocate(boundhism(bounds_total));boundhism=zero
-  end if
+	  if (mood.eq.1)then
+	  allocate(boundhirm(max(1,bound_total))); boundhirm=zero
+	   allocate(boundhism(max(1,bounds_total)));boundhism=zero
+	  end if
 
-  if ((rungekutta.ge.10))then
-  allocate(boundhiri(bound_total,1:ilength1)); boundhiri=zero
-  allocate(boundhisi(bounds_total,1:ilength1)); boundhisi=zero
-  allocate(boundhiri_flat(1:bound_total*ilength1)); boundhiri_flat=zero
-  allocate(boundhisi_flat(1:bounds_total*ilength1)); boundhisi_flat=zero
-  end if
+	  if ((rungekutta.ge.10))then
+	  allocate(boundhiri(max(1,bound_total),1:ilength1)); boundhiri=zero
+	  allocate(boundhisi(max(1,bounds_total),1:ilength1)); boundhisi=zero
+	  allocate(boundhiri_flat(1:max(1,bound_total*ilength1))); boundhiri_flat=zero
+	  allocate(boundhisi_flat(1:max(1,bounds_total*ilength1))); boundhisi_flat=zero
+	  end if
 
 
 

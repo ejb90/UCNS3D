@@ -1222,6 +1222,17 @@ WGTfLAG=0
 imaxee=imaxe
 imaxnn=imaxn
 isizee=isize
+
+if (isize.eq.1)then
+  XMPIE(1:IMAXE)=0
+  if (n.eq.0) then
+    write(*,*) '------------------------------------------------------------------------'
+    write(*,*) '                       Single-rank partitioning                         '
+    write(*,*) '------------------------------------------------------------------------'
+  end if
+  return
+end if
+
 tsize=isizee
 allocate(xmpiee(1:isize))
 
@@ -1612,4 +1623,3 @@ end subroutine Partitioner6
 
 
 end module partition
-
