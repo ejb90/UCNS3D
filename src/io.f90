@@ -15804,9 +15804,9 @@ if (n.eq.0)then
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -15851,7 +15851,7 @@ if (n.eq.0)then
     ! offsets
     buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
                      'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf;write(300) trim(buffer)
-    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    offset_temp=offset_temp+size_of_int+(temp_imaxe+1)*size_of_int
     write(offset_stamp,'(i16)')offset_temp
     ! elem types
     buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
@@ -15938,16 +15938,19 @@ call mpi_barrier(mpi_comm_world,ierror)
 	block_start=disp_in_file
 	payload_start=block_start+size_of_int
 	if (n.eq.0)then
-		byte_count=int(temp_imaxe*size_of_int)
+		byte_count=int((temp_imaxe+1)*size_of_int)
 		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
 		call check_vtu_mpi_io('parallel_vtk_combine: write offsets byte count',ierror)
+		dumg=0
+		call mpi_file_write_at(fh, payload_start, dumg, 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write initial zero offset',ierror)
 	end if
 	do i=1,kmaxe
-		write_offset=payload_start+int(dispart5(i),mpi_offset_kind)*size_of_int
+		write_offset=payload_start+(int(dispart5(i),mpi_offset_kind)+1)*size_of_int
 		call mpi_file_write_at(fh, write_offset, iarray_part5(i), 1, mpi_integer, mpi_status_ignore, ierror)
 		call check_vtu_mpi_io('parallel_vtk_combine: write offsets',ierror)
 	end do
-	disp_in_file=disp_in_file+size_of_int+temp_imaxe*size_of_int
+	disp_in_file=disp_in_file+size_of_int+(temp_imaxe+1)*size_of_int
 
 	block_start=disp_in_file
 	payload_start=block_start+size_of_int
@@ -16114,7 +16117,7 @@ if (n.eq.0)then
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -16537,7 +16540,7 @@ temp_imaxn=kmaxn
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -16674,7 +16677,7 @@ temp_imaxn=kmaxn
 
                                lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -16927,7 +16930,7 @@ temp_imaxn=kmaxn
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -17069,7 +17072,7 @@ end if
 
                                lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -17636,7 +17639,7 @@ real::mp_pinfr,gammar
 	
 		lf = char(10)
 	   ! write file name
-		open(300,file=vtu,access='stream')
+		open(300,file=vtu,access='stream',status='replace')
 		! write header
 		buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 		! write unstructured grid type
@@ -17773,7 +17776,7 @@ real::mp_pinfr,gammar
 	
 								   lf = char(10)
 	   ! write file name
-		open(300,file=vtu,access='stream')
+		open(300,file=vtu,access='stream',status='replace')
 		! write header
 		buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;write(300) trim(buffer)
 		! write unstructured grid type
@@ -18047,7 +18050,7 @@ integer::iconsidered,facex
 		
 			lf = char(10)
 		   ! write file name
-			open(300,file=vtu,access='stream')
+			open(300,file=vtu,access='stream',status='replace')
 			! write header
 			buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 			! write unstructured grid type
@@ -18483,7 +18486,7 @@ integer::iconsidered,facex
 
 			lf = char(10)
 		   ! write file name
-			open(300,file=vtu,access='stream')
+			open(300,file=vtu,access='stream',status='replace')
 			! write header
 			buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 			! write unstructured grid type
