@@ -15944,12 +15944,9 @@ call mpi_barrier(mpi_comm_world,ierror)
 		dumg=0
 		call mpi_file_write_at(fh, payload_start, dumg, 1, mpi_integer, mpi_status_ignore, ierror)
 		call check_vtu_mpi_io('parallel_vtk_combine: write initial zero offset',ierror)
+		call mpi_file_write_at(fh, payload_start+size_of_int, nodes_offset2, imaxe, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write global offsets',ierror)
 	end if
-	do i=1,kmaxe
-		write_offset=payload_start+(int(dispart5(i),mpi_offset_kind)+1)*size_of_int
-		call mpi_file_write_at(fh, write_offset, iarray_part5(i), 1, mpi_integer, mpi_status_ignore, ierror)
-		call check_vtu_mpi_io('parallel_vtk_combine: write offsets',ierror)
-	end do
 	disp_in_file=disp_in_file+size_of_int+(temp_imaxe+1)*size_of_int
 
 	block_start=disp_in_file

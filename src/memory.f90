@@ -344,7 +344,9 @@ end  subroutine timing
 	implicit none
 	integer,allocatable,dimension(:),intent(inout)::ieshape
 	integer,intent(inout)::imaxe
-	deallocate (ieshape,nodes_offset,nodes_offset2)
+	! Keep the global connectivity offsets for type-5 VTU output.  Rank zero
+	! writes these contiguously so their order cannot depend on partitioning.
+	deallocate (ieshape)
 	end subroutine shdeallocation
 
 
