@@ -15941,9 +15941,12 @@ call mpi_barrier(mpi_comm_world,ierror)
 		byte_count=int(temp_imaxe*size_of_int)
 		call mpi_file_write_at(fh, block_start, byte_count, 1, mpi_integer, mpi_status_ignore, ierror)
 		call check_vtu_mpi_io('parallel_vtk_combine: write offsets byte count',ierror)
-		call mpi_file_write_at(fh, payload_start, nodes_offset2, imaxe, mpi_integer, mpi_status_ignore, ierror)
-		call check_vtu_mpi_io('parallel_vtk_combine: write global offsets',ierror)
 	end if
+	do i=1,kmaxe
+		write_offset=payload_start+int(dispart5(i),mpi_offset_kind)*size_of_int
+		call mpi_file_write_at(fh, write_offset, iarray_part5(i), 1, mpi_integer, mpi_status_ignore, ierror)
+		call check_vtu_mpi_io('parallel_vtk_combine: write offsets',ierror)
+	end do
 	disp_in_file=disp_in_file+size_of_int+temp_imaxe*size_of_int
 
 	block_start=disp_in_file
@@ -17311,7 +17314,7 @@ temp_imaxn=kmaxn
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -17453,7 +17456,7 @@ end if
 
                                lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream')
+    open(300,file=vtu,access='stream',status='replace')
     ! write header
     buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;write(300) trim(buffer)
     ! write unstructured grid type

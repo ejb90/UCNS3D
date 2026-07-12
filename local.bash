@@ -9,6 +9,8 @@ perf2_dir="${PERF2_DIR:-/home/ellis/Documents/cfd_msc/09_IRP/tests/perf2}"
 smoke_root="${SMOKE_ROOT:-$build_root/smoke}"
 mpi_ranks="${MPI_RANKS:-4}"
 build_deps="${BUILD_DEPS:-auto}"
+visit_bin="${VISIT_BIN:-$(command -v visit 2>/dev/null || true)}"
+require_visit="${REQUIRE_VISIT:-no}"
 
 gklib_repo="${GKLIB_REPO:-https://github.com/KarypisLab/GKlib.git}"
 metis_repo="${METIS_REPO:-https://github.com/KarypisLab/METIS.git}"
@@ -179,6 +181,19 @@ EOF
 
     [[ "$mpi_status" -eq 0 ]] || die "Smoke test MPI launch failed in $smoke_dir; see $smoke_dir/smoke.log"
 
+    if [[ -n "$visit_bin" ]]; then
+        printf 'Validating VTU time series with %s\n' "$visit_bin"
+        VISIT_VTU_DIR="$smoke_dir" "$visit_bin" -nowin -cli -s "$ucns3d_dir/tests/visit_vtu_smoke.py" \
+            > "$smoke_dir/visit-vtu.log" 2>&1 || \
+            die "VisIt VTU test failed in $smoke_dir; see $smoke_dir/visit-vtu.log"
+        grep -q 'VTU_VISIT_TEST_PASSED' "$smoke_dir/visit-vtu.log" || \
+            die "VisIt VTU test did not report success; see $smoke_dir/visit-vtu.log"
+    elif [[ "$require_visit" == "yes" ]]; then
+        die "REQUIRE_VISIT=yes but no VisIt executable was found; set VISIT_BIN"
+    else
+        printf 'Skipping VisIt VTU test: set VISIT_BIN or REQUIRE_VISIT=yes to enable it.\n'
+    fi
+
     if [[ -f "$smoke_dir/history.txt" ]] && \
         grep -Eq '^[[:space:]]*[^[:space:]]+[[:space:]]+1[[:space:]]+time step size' "$smoke_dir/history.txt"; then
         printf 'Smoke test passed: timestep 1 completed successfully.\n'
@@ -195,6 +210,7 @@ for command in git make gcc mpicc mpif90 mpirun awk find grep head sha256sum sta
 done
 
 [[ "$build_deps" =~ ^(auto|yes|no)$ ]] || die "BUILD_DEPS must be auto, yes, or no"
+[[ "$require_visit" =~ ^(yes|no)$ ]] || die "REQUIRE_VISIT must be yes or no"
 [[ -d "$perf2_dir" ]] || die "perf2 input directory not found: $perf2_dir"
 
 mkdir -p "$build_root"
