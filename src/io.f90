@@ -15806,7 +15806,7 @@ if (n.eq.0)then
    ! write file name
     open(300,file=vtu,access='stream')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -16116,7 +16116,7 @@ if (n.eq.0)then
    ! write file name
     open(300,file=vtu,access='stream')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -16539,7 +16539,7 @@ temp_imaxn=kmaxn
    ! write file name
     open(300,file=vtu,access='stream')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -16929,7 +16929,7 @@ temp_imaxn=kmaxn
    ! write file name
     open(300,file=vtu,access='stream')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -17316,7 +17316,7 @@ temp_imaxn=kmaxn
    ! write file name
     open(300,file=vtu,access='stream')
     ! write header
-    buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+    buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
     buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
     ! write solution time type
@@ -17638,7 +17638,7 @@ real::mp_pinfr,gammar
 	   ! write file name
 		open(300,file=vtu,access='stream')
 		! write header
-		buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+		buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 		! write unstructured grid type
 		buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
 		! write solution time type
@@ -18049,7 +18049,7 @@ integer::iconsidered,facex
 		   ! write file name
 			open(300,file=vtu,access='stream')
 			! write header
-			buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+			buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 			! write unstructured grid type
 			buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
 			! write solution time type
@@ -18485,7 +18485,7 @@ integer::iconsidered,facex
 		   ! write file name
 			open(300,file=vtu,access='stream')
 			! write header
-			buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
+			buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
 			! write unstructured grid type
 			buffer='  <UnstructuredGrid>'//lf;write(300) trim(buffer)
 			! write solution time type

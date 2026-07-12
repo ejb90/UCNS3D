@@ -110,7 +110,7 @@ run_smoke_test() {
     smoke_dir="$(mktemp -d "$smoke_root/perf2.XXXXXX")"
     ln -sfn "$smoke_dir" "$smoke_root/latest"
 
-    cp "$perf2_dir/405.DAT" "$perf2_dir/MULTISPECIES.DAT" "$smoke_dir/"
+    cp "$perf2_dir/MULTISPECIES.DAT" "$smoke_dir/"
     cp "$perf2_dir/UCNS3D.DAT" "$smoke_dir/"
     copy_perf2_mesh "$smoke_dir"
     cp "$src_dir/ucns3d_p" "$smoke_dir/"
@@ -125,7 +125,46 @@ run_smoke_test() {
 0.0	0.0	0.0	!STIFFENED EOS PRESSURES
 EOF
 
-    awk 'NR == 48 {$1 = "1.0"; $2 = "1"; $3 = "600"} {print}' \
+    cat > "$smoke_dir/407.nml" <<'EOF'
+&bubble_case
+  shock_position_x = -0.1
+  left_pressure = 150000.0
+  left_velocity = 114.49, 0.0, 0.0
+  left_density = 0.166315789, 1.658, 1.431
+  left_volume_fraction = 0.0, 1.0, 0.0
+  right_pressure = 101325.0
+  right_velocity = 0.0, 0.0, 0.0
+  right_density = 0.166315789, 1.204, 1.431
+  right_volume_fraction = 0.0, 1.0, 0.0
+  bubble_count = 2
+/
+
+&bubble
+  bubble_center = -0.05, 0.05, 0.0
+  bubble_initial_radius = 0.025
+  bubble_perturbation_amplitude = 0.0
+  bubble_perturbation_modes = 0
+  bubble_perturbation_phase = 0.0
+  bubble_pressure = 101325.0
+  bubble_velocity = 0.0, 0.0, 0.0
+  bubble_density = 0.166315789, 1.204, 1.431
+  bubble_volume_fraction = 0.95, 0.05, 0.0
+/
+
+&bubble
+  bubble_center = 0.05, 0.05, 0.0
+  bubble_initial_radius = 0.025
+  bubble_perturbation_amplitude = 0.0
+  bubble_perturbation_modes = 0
+  bubble_perturbation_phase = 0.0
+  bubble_pressure = 101325.0
+  bubble_velocity = 0.0, 0.0, 0.0
+  bubble_density = 0.166315789, 1.204, 1.431
+  bubble_volume_fraction = 0.0, 0.05, 0.95
+/
+EOF
+
+    awk 'NR == 8 {$2 = "407"} NR == 48 {$1 = "1.0"; $2 = "1"; $3 = "600"} {print}' \
         "$smoke_dir/UCNS3D.DAT" > "$smoke_dir/UCNS3D.DAT.tmp"
     mv "$smoke_dir/UCNS3D.DAT.tmp" "$smoke_dir/UCNS3D.DAT"
 
