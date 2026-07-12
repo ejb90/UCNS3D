@@ -15804,7 +15804,7 @@ if (n.eq.0)then
 
 	lf = char(10)
    ! write file name
-    open(300,file=vtu,access='stream',status='replace')
+    open(300,file=vtu,access='stream')
     ! write header
     buffer='<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt32">'//lf;write(300) trim(buffer)
     ! write unstructured grid type
@@ -15865,6 +15865,8 @@ if (n.eq.0)then
     ! write leading data underscore
     buffer='_';write(300) trim(buffer)
 	bytes = size_of_real
+	inquire(unit=300,pos=dip)
+	dip=dip-1
 	close(300)
 
 
@@ -15872,13 +15874,16 @@ end if
 
 
 call mpi_barrier(mpi_comm_world,ierror)
+	call mpi_bcast(dip,1,mpi_integer,0,mpi_comm_world,ierror)
+	call check_vtu_mpi_io('parallel_vtk_combine: broadcast XML header size',ierror)
+	disp_init=int(dip,mpi_offset_kind)
 
 
 	call mpi_file_open(mpi_comm_world,vtu,mpi_mode_wronly,mpi_info_null, fh, ierror)
 	call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_open '//trim(vtu),ierror)
-	call mpi_file_get_size(fh, disp_in_file, ierror)
-	call check_vtu_mpi_io('parallel_vtk_combine: MPI_File_get_size',ierror)
-	disp_init=disp_in_file
+	call mpi_file_set_size(fh,disp_init,ierror)
+	call check_vtu_mpi_io('parallel_vtk_combine: truncate to XML header',ierror)
+	disp_in_file=disp_init
 
 	if (n.eq.0)then
 		byte_count=size_of_real
