@@ -599,6 +599,7 @@ p1=bubble_case_right_pressure
 u1=bubble_case_right_velocity(1)
 v1=bubble_case_right_velocity(2)
 w1=bubble_case_right_velocity(3)
+end if
 do rg_j=1,bubble_case_n_bubbles
 drad=sqrt(((pox(1)-bubble_case_bubble_center(1,rg_j))**2)+((poy(1)-bubble_case_bubble_center(2,rg_j))**2)+((poz(1)-bubble_case_bubble_center(3,rg_j))**2))
 theta1=atan2(poy(1)-bubble_case_bubble_center(2,rg_j),pox(1)-bubble_case_bubble_center(1,rg_j))
@@ -612,7 +613,6 @@ v1=bubble_case_bubble_velocity_list(2,rg_j)
 w1=bubble_case_bubble_velocity_list(3,rg_j)
 end if
 end do
-end if
 
 call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
 end if
@@ -2176,6 +2176,7 @@ p1=bubble_case_right_pressure
 u1=bubble_case_right_velocity(1)
 v1=bubble_case_right_velocity(2)
 w1=0.0d0
+end if
 do rg_j=1,bubble_case_n_bubbles
 drad=sqrt(((pox(1)-bubble_case_bubble_center(1,rg_j))**2)+((poy(1)-bubble_case_bubble_center(2,rg_j))**2))
 theta1=atan2(poy(1)-bubble_case_bubble_center(2,rg_j),pox(1)-bubble_case_bubble_center(1,rg_j))
@@ -2189,7 +2190,6 @@ v1=bubble_case_bubble_velocity_list(2,rg_j)
 w1=0.0d0
 end if
 end do
-end if
 
 call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
 end if

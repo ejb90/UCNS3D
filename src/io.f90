@@ -4,6 +4,7 @@ use declaration
 use flow_operations
 use iso_c_binding
 use transform
+use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 implicit none
 contains
 
@@ -60,13 +61,15 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 	real::schlieren
 	real,dimension(3,3)::ata
 	real,dimension(3)::atb,grad,delta,rowtmp
-	real::drho,pivot,factor,tmp
-	integer::face_id,neighbor_id,local_cells,dim_i,row_i,col_i,pivot_row
+	real::density_center,drho,distance_squared,distance_inverse,pivot,factor,tmp
+	real::matrix_scale,pivot_tolerance,gradient_scale,scaled_norm
+	integer::face_id,neighbor_id,local_cells,dim_i,row_i,col_i,pivot_row,valid_neighbors
 
 	schlieren=0.0d0
 	ata=0.0d0
 	atb=0.0d0
 	grad=0.0d0
+	valid_neighbors=0
 
 	if (.not.allocated(u_c_val)) return
 	if (.not.allocated(ielem_ineigh)) return
@@ -79,6 +82,8 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 	if (cell_id.gt.size(ielem_xxc)) return
 	if (cell_id.gt.size(ielem_yyc)) return
 	if (cell_id.gt.size(ielem_zzc)) return
+	density_center=u_c_val(1,1,cell_id)
+	if (.not.ieee_is_finite(density_center)) return
 
 	do face_id=1,size(ielem_ineigh,1)
 		neighbor_id=ielem_ineigh(face_id,cell_id)
@@ -94,7 +99,18 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 			delta(1)=ielem_xxc(neighbor_id)-ielem_xxc(cell_id)
 			delta(2)=ielem_yyc(neighbor_id)-ielem_yyc(cell_id)
 			delta(3)=ielem_zzc(neighbor_id)-ielem_zzc(cell_id)
-			drho=u_c_val(1,1,neighbor_id)-u_c_val(1,1,cell_id)
+			if (.not.all(ieee_is_finite(delta(1:dimensiona)))) cycle
+			distance_squared=sum(delta(1:dimensiona)*delta(1:dimensiona))
+			if (.not.ieee_is_finite(distance_squared).or.distance_squared.le.tiny(1.0d0)) cycle
+			drho=u_c_val(1,1,neighbor_id)-density_center
+			if (.not.ieee_is_finite(drho)) cycle
+			! Divide each neighbour equation by its centroid distance.  This keeps
+			! the normal matrix O(1) and gives nearby cells the appropriate weight.
+			distance_inverse=1.0d0/sqrt(distance_squared)
+			delta(1:dimensiona)=delta(1:dimensiona)*distance_inverse
+			drho=drho*distance_inverse
+			if (.not.ieee_is_finite(drho)) cycle
+			valid_neighbors=valid_neighbors+1
 			do row_i=1,dimensiona
 				atb(row_i)=atb(row_i)+delta(row_i)*drho
 				do col_i=1,dimensiona
@@ -103,13 +119,20 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 			end do
 		end if
 	end do
+	if (valid_neighbors.lt.dimensiona) return
+	if (.not.all(ieee_is_finite(ata(1:dimensiona,1:dimensiona)))) return
+	if (.not.all(ieee_is_finite(atb(1:dimensiona)))) return
+	matrix_scale=maxval(abs(ata(1:dimensiona,1:dimensiona)))
+	if (matrix_scale.le.tiny(1.0d0)) return
+	pivot_tolerance=100.0d0*epsilon(1.0d0)*matrix_scale
 
 	do dim_i=1,dimensiona
 		pivot_row=dim_i
 		do row_i=dim_i+1,dimensiona
 			if (abs(ata(row_i,dim_i)).gt.abs(ata(pivot_row,dim_i))) pivot_row=row_i
 		end do
-		if (abs(ata(pivot_row,dim_i)).lt.1.0d-30) return
+		if (.not.ieee_is_finite(ata(pivot_row,dim_i))) return
+		if (abs(ata(pivot_row,dim_i)).le.pivot_tolerance) return
 		if (pivot_row.ne.dim_i)then
 			rowtmp=ata(dim_i,:)
 			ata(dim_i,:)=ata(pivot_row,:)
@@ -119,8 +142,10 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 			atb(pivot_row)=tmp
 		end if
 		pivot=ata(dim_i,dim_i)
+		if (.not.ieee_is_finite(pivot).or.abs(pivot).le.pivot_tolerance) return
 		do row_i=dim_i+1,dimensiona
 			factor=ata(row_i,dim_i)/pivot
+			if (.not.ieee_is_finite(factor)) return
 			ata(row_i,dim_i:dimensiona)=ata(row_i,dim_i:dimensiona)-factor*ata(dim_i,dim_i:dimensiona)
 			atb(row_i)=atb(row_i)-factor*atb(dim_i)
 		end do
@@ -129,10 +154,21 @@ function synthetic_schlieren_density(n,cell_id) result(schlieren)
 	do dim_i=dimensiona,1,-1
 		tmp=atb(dim_i)
 		if (dim_i.lt.dimensiona) tmp=tmp-sum(ata(dim_i,dim_i+1:dimensiona)*grad(dim_i+1:dimensiona))
+		if (.not.ieee_is_finite(tmp)) return
+		if (abs(ata(dim_i,dim_i)).le.pivot_tolerance) return
 		grad(dim_i)=tmp/ata(dim_i,dim_i)
+		if (.not.ieee_is_finite(grad(dim_i))) return
 	end do
 
-	schlieren=sqrt(sum(grad(1:dimensiona)*grad(1:dimensiona)))
+	! Use a scaled Euclidean norm so squaring a large finite gradient cannot
+	! overflow and turn the complete diagnostic field into Inf.
+	gradient_scale=maxval(abs(grad(1:dimensiona)))
+	if (.not.ieee_is_finite(gradient_scale).or.gradient_scale.le.0.0d0) return
+	scaled_norm=sqrt(sum((grad(1:dimensiona)/gradient_scale)**2))
+	if (.not.ieee_is_finite(scaled_norm)) return
+	if (gradient_scale.gt.huge(schlieren)/scaled_norm) return
+	schlieren=gradient_scale*scaled_norm
+	if (.not.ieee_is_finite(schlieren)) schlieren=0.0d0
 end function synthetic_schlieren_density
 
 
