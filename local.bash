@@ -183,7 +183,7 @@ EOF
 
     if [[ -n "$visit_bin" ]]; then
         printf 'Validating VTU time series with %s\n' "$visit_bin"
-        VISIT_VTU_DIR="$smoke_dir" "$visit_bin" -nowin -cli -s "$ucns3d_dir/tests/visit_vtu_smoke.py" \
+        VISIT_VTU_DIR="$smoke_dir" "$visit_bin" -nowin -cli -s "$script_dir/../../analysis/tests/visit_vtu_smoke.py" \
             > "$smoke_dir/visit-vtu.log" 2>&1 || \
             die "VisIt VTU test failed in $smoke_dir; see $smoke_dir/visit-vtu.log"
         grep -q 'VTU_VISIT_TEST_PASSED' "$smoke_dir/visit-vtu.log" || \
