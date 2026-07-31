@@ -618,6 +618,58 @@ call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
 end if
 
 
+! Haas--Sturtevant (1987) Mach 1.22 shock interaction with a 50 mm
+! cylindrical gas inhomogeneity.  These two deliberately self-contained
+! profiles are the three-dimensional counterparts of the generated 2-D
+! cases.  The cylinder axis is z, so its cross-section is independent of z.
+!
+! Species ordering required by MULTISPECIES.DAT:
+!   1: air, 2: helium mixture (initcond 480) or R22 (initcond 481)
+if ((initcond.eq.480).or.(initcond.eq.481))then
+if (nof_species.ne.2)then
+write(*,*)'Haas--Sturtevant profiles 480/481 require exactly two species'
+stop
+end if
+
+! Initially unshocked air everywhere.  Intrinsic densities for both
+! materials are retained even where their volume fraction is zero.
+mp_r(:)=0.0d0
+mp_a(:)=0.0d0
+mp_r(1)=1.198d0
+if (initcond.eq.480)then
+mp_r(2)=0.216d0
+else
+mp_r(2)=3.69d0
+end if
+mp_a(1)=1.0d0
+p1=101325.0d0
+u1=0.0d0
+v1=0.0d0
+w1=0.0d0
+
+! Post-shock air.  The incident shock starts at x=50 mm and travels in
+! the negative-x direction at 419.68 m/s (Mach 1.22 in the ambient air).
+if (pox(1).ge.0.050d0)then
+mp_r(1)=1.6488840392084334d0
+p1=159059.985d0
+u1=-114.76065573770495d0
+end if
+
+! The 50 mm diameter gas cylinder is centred at x=y=0 and spans the z
+! direction.  It is initially stationary and in pressure equilibrium.
+if (sqrt((pox(1)**2)+(poy(1)**2)).le.0.025d0)then
+mp_a(1)=0.0d0
+mp_a(2)=1.0d0
+p1=101325.0d0
+u1=0.0d0
+v1=0.0d0
+w1=0.0d0
+end if
+
+call set_multispecies_euler_state(veccos,mp_r,mp_a,p1,u1,v1,w1)
+end if
+
+
 if (initcond.eq.470)then
 
 
